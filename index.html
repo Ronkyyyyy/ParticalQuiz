@@ -15,6 +15,8 @@
             --silver: #a0a0a0;
             --glow: #e0d070;
             --highlight: #f1c40f;
+            --danger: #e74c3c;
+            --cyan: #00bcd4; /* Endless Mode Accent */
             --text-main: #dcdcdc;
             --font-jp: "MS Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
             --font-display: 'Courier New', Courier, monospace;
@@ -45,6 +47,7 @@
         @keyframes modal-fade { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes vibe { 0% { transform: translate(0,0); } 25% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 75% { transform: translate(1px, -1px); } 100% { transform: translate(0,0); } }
+        @keyframes float-up { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-20px); opacity: 0; } }
 
         /* --- UI Components --- */
         .container {
@@ -81,7 +84,7 @@
             transition: transform 0.1s, box-shadow 0.1s;
         }
         button:active { transform: translateY(4px); box-shadow: 0 0 0 #4a3b1a; }
-        button:disabled { filter: grayscale(100%); opacity: 0.6; cursor: not-allowed; }
+        button:disabled { filter: grayscale(100%); opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
         
         button.primary {
             background: linear-gradient(to bottom, #f1c40f, #f39c12);
@@ -96,13 +99,19 @@
         }
         button.danger:active { box-shadow: 0 0 0 #631d1b; }
 
+        button.endless-btn {
+            background: linear-gradient(to bottom, var(--cyan), #008ba3);
+            border-color: #006064; box-shadow: 0 4px 0 #006064, 0 5px 10px rgba(0,0,0,0.5); color: #fff;
+        }
+        button.endless-btn:active { box-shadow: 0 0 0 #006064; }
+
         /* Gauges */
         .gauge-container {
             display: flex; justify-content: space-between; margin-bottom: 15px;
             background: #000; padding: 8px; border: 2px solid var(--silver); border-radius: 30px;
-            box-shadow: inset 0 0 10px #000;
+            box-shadow: inset 0 0 10px #000; position: relative;
         }
-        .gauge { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .gauge { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
         .gauge-label { font-size: 0.7em; color: var(--silver); }
         .gauge-value { font-size: 1.4em; color: var(--glow); text-shadow: 0 0 5px var(--glow); font-family: var(--font-display); }
         .mp-bar-bg {
@@ -113,6 +122,13 @@
             height: 100%; background: linear-gradient(90deg, #d35400, #f39c12); width: 100%;
             transition: width 0.5s ease-out; box-shadow: 0 0 5px #f39c12;
         }
+        /* MP Change Popup */
+        .mp-popup {
+            position: absolute; top: 0; right: 20px; font-weight: bold; font-size: 1.2em;
+            pointer-events: none; animation: float-up 1s forwards;
+        }
+        .mp-popup.plus { color: #00ff00; }
+        .mp-popup.minus { color: #ff0000; }
 
         /* Game Area */
         #game-area { display: none; }
@@ -314,8 +330,9 @@
                 <div style="color:var(--silver); margin-top:10px;">- 蒸気式解析機 -</div>
             </div>
             <div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
-                <button onclick="Game.init()" style="font-size: 1.5em; padding: 15px 40px; width:250px;">ゲーム開始</button>
-                <button class="secondary" onclick="UI.showManual()" style="width:250px;">マニュアル確認</button>
+                <button onclick="Game.init('normal')" style="font-size: 1.5em; padding: 15px 40px; width:280px;">スコアアタック<span style="font-size:0.6em; display:block">全5ステージ</span></button>
+                <button onclick="Game.init('endless')" class="endless-btn" style="font-size: 1.5em; padding: 15px 40px; width:280px;">Infinite Decode<span style="font-size:0.6em; display:block">エンドレスモード</span></button>
+                <button class="secondary" onclick="UI.showManual()" style="width:280px;">マニュアル確認</button>
             </div>
             <div style="margin-top: 30px; color: var(--copper);">最高記録: <span id="hs-display">0</span></div>
         </div>
@@ -335,14 +352,22 @@
                 3. <b>一括オープン</b>: 「決定」で情報を取得します。<br>
                 4. <b>解答/追跡</b>: 答えを入力して送信。不正解なら再び選択フェーズへ。</p>
 
-                <h3>⚖️ ジャンル解析弁 (NEW)</h3>
-                <p>画面上の「GENRE VALVE」を開くとジャンルが判明しますが、<b>クリア報酬が減少（800→500pt）</b>します。開けずに正解すれば高得点です。</p>
-
-                <h3>📈 スコア計算</h3>
-                <p><b>知識（クリア）</b>: (基礎点 × Level) × 倍率<br>
-                基礎点: ジャンル未読 800pt / 既読 500pt<br>
-                <b>運（未開封）</b>: 未開封枚数 × 500pt<br>
-                <b>管理（残MP）</b>: 全問終了後、残りMP × 200pt</p>
+                <h3>⚖️ モード別ルール</h3>
+                <p style="border-left:3px solid var(--brass); padding-left:10px;">
+                    <b>スコアアタック (Normal)</b><br>
+                    全5問の合計スコアを競う。<br>
+                    MP: 50固定 (消費型)<br>
+                    ジャンルOpen: スコア減額<br>
+                    パス: 無制限
+                </p>
+                <p style="border-left:3px solid var(--cyan); padding-left:10px;">
+                    <b>Infinite Decode (Endless)</b><br>
+                    MPが尽きるまでの連続正解数を競う。<br>
+                    MP: 初期20。正解で回復。<br>
+                    ジャンルOpen: <b>-5 MP</b><br>
+                    不正解 / パス: <b>-3 MP</b><br>
+                    スキップ: <b>-10 MP</b><br>
+                </p>
             </div>
             <br>
             <button onclick="UI.closeManual()">閉じる</button>
@@ -357,7 +382,7 @@
                 <div class="mp-bar-bg"><div id="mp-bar" class="mp-bar-fill" style="width: 100%;"></div></div>
             </div>
             <div class="gauge">
-                <span class="gauge-label">獲得スコア</span>
+                <span class="gauge-label" id="score-label">獲得スコア</span>
                 <span class="gauge-value" id="score-display">0</span>
             </div>
         </div>
@@ -393,7 +418,7 @@
                         <div class="bulb lit"></div>
                     </div>
                     <div>
-                        <button class="danger" onclick="Game.giveUp()" style="font-size: 0.8em;">諦める</button>
+                        <button class="danger" id="giveup-btn" onclick="Game.giveUp()" style="font-size: 0.8em;">諦める</button>
                     </div>
                 </div>
             </div>
@@ -423,13 +448,13 @@
             <h2 id="result-title">ステージクリア</h2>
             <div id="result-details"></div>
             <br>
-            <button onclick="Game.nextLevel()">次の階層へ</button>
+            <button onclick="Game.nextLevel()">次へ進む</button>
         </div>
     </div>
 
     <div id="final-modal" class="modal-overlay">
         <div class="modal">
-            <h2>全階層踏破</h2>
+            <h2>ミッション終了</h2>
             <div class="total-score" id="final-score">0</div>
             <p id="rank-display" style="font-size:1.2em; font-weight:bold; color:var(--highlight)">ランク: F</p>
             <button onclick="location.reload()">システム再起動</button>
@@ -440,7 +465,7 @@
 
     <script>
         // --- Data ---
-        const questionsData = [{"id": 1, "genre": "生活・雑学", "text": "令和元年は西暦何年？", "answer": "2019", "answerLen": 4, "level": 1}, {"id": 2, "genre": "生活・雑学", "text": "1ダースは何個のこと？", "answer": "12", "answerLen": 2, "level": 1}, {"id": 3, "genre": "生活・雑学", "text": "1週間は何日間のこと？", "answer": "7", "answerLen": 1, "level": 1}, {"id": 4, "genre": "科学・数学", "text": "五角形を英語で何という？", "answer": "ぺんたごん", "answerLen": 5, "level": 1}, {"id": 5, "genre": "文化・芸術", "text": "囲碁で使う石の色は白と何？", "answer": "くろ", "answerLen": 2, "level": 1}, {"id": 6, "genre": "生活・雑学", "text": "「百足」この漢字は何と読む？", "answer": "むかで", "answerLen": 3, "level": 1}, {"id": 7, "genre": "生活・雑学", "text": "旧暦で12月のことを何という？", "answer": "しわす", "answerLen": 3, "level": 1}, {"id": 8, "genre": "地理", "text": "日本で一番面積が広い都道府県は？", "answer": "ほっかいどう", "answerLen": 6, "level": 1}, {"id": 9, "genre": "生活・雑学", "text": "信号機で「止まれ」を意味する色は？", "answer": "あか", "answerLen": 2, "level": 1}, {"id": 10, "genre": "科学・数学", "text": "地球の周りを回っている唯一の衛星は？", "answer": "つき", "answerLen": 2, "level": 1}, {"id": 11, "genre": "生活・雑学", "text": "なぞなぞです。冷蔵庫の中にいる動物は？", "answer": "ぞう", "answerLen": 2, "level": 1}, {"id": 12, "genre": "生活・雑学", "text": "設定した時間になるとベルなどが鳴動する時計は？", "answer": "めざましどけい", "answerLen": 7, "level": 2}, {"id": 13, "genre": "生活・雑学", "text": "演技が平坦に見える人を、野菜に例えて何という？", "answer": "だいこんやくしゃ", "answerLen": 8, "level": 2}, {"id": 14, "genre": "生活・雑学", "text": "なぞなぞです。「8,999999…」これ何の動物？", "answer": "くじゃく", "answerLen": 4, "level": 2}, {"id": 15, "genre": "地理", "text": "世界で一番高い山「エベレスト」がある山脈の名前は何？", "answer": "ひまらや", "answerLen": 4, "level": 2}, {"id": 16, "genre": "文化・芸術", "text": "将棋の駒で、唯一「成る」ことができない一番弱い駒は何？", "answer": "ふひょう", "answerLen": 4, "level": 2}, {"id": 17, "genre": "スポーツ", "text": "主にテニスや野球などのスポーツ時、手首に着ける装飾品は？", "answer": "りすとばんど", "answerLen": 6, "level": 2}, {"id": 18, "genre": "文化・芸術", "text": "音楽の父と呼ばれ、「G線上のアリア」等を作曲した人物は？", "answer": "ばっは", "answerLen": 3, "level": 2}, {"id": 19, "genre": "文化・芸術", "text": "童話『ピノキオ』で、嘘をつくと伸びてしまう体の一部はどこ？", "answer": "はな", "answerLen": 2, "level": 2}, {"id": 20, "genre": "生活・雑学", "text": "毎年1月1日に届く、新年の挨拶が書かれたハガキを何という？", "answer": "ねんがじょう", "answerLen": 6, "level": 2}, {"id": 21, "genre": "生活・雑学", "text": "年が明けてから初めて神社や寺院などに参拝する行事を何という？", "answer": "はつもうで", "answerLen": 5, "level": 2}, {"id": 22, "genre": "生物", "text": "首が非常に長く、高い場所の葉を食べる、アフリカに住む動物は？", "answer": "きりん", "answerLen": 3, "level": 2}, {"id": 23, "genre": "科学・数学", "text": "鉛筆の芯の主な原料で、ダイヤモンドと同じ炭素からなる物質は？", "answer": "こくえん", "answerLen": 4, "level": 2}, {"id": 24, "genre": "歴史", "text": "1789年に起こり、ルイ16世が処刑された市民革命を何という？", "answer": "ふらんすかくめい", "answerLen": 8, "level": 2}, {"id": 25, "genre": "科学・数学", "text": "七転八倒、二束三文、岡目八目。出てきた漢数字を全て足すといくつ？", "answer": "28", "answerLen": 2, "level": 2}, {"id": 26, "genre": "スポーツ", "text": "オリンピックの五輪のマーク。青、黄、黒、緑、あともう一色は何色？", "answer": "あか", "answerLen": 2, "level": 2}, {"id": 27, "genre": "エンタメ", "text": "赤い帽子にヒゲが特徴の、任天堂の人気アクションゲームの主人公は？", "answer": "まりお", "answerLen": 3, "level": 2}, {"id": 28, "genre": "文化・芸術", "text": "おじいさんが川から流れてきた大きな桃を拾うところから始まる物語は？", "answer": "ももたろう", "answerLen": 5, "level": 2}, {"id": 29, "genre": "文化・芸術", "text": "金属板を靴底の爪先や踵につけて、床を踏み鳴らしながら踊るスタイルは？", "answer": "たっぷだんす", "answerLen": 6, "level": 2}, {"id": 30, "genre": "科学・数学", "text": "光が1年間に進む距離を1とする、天文学で使われる距離の単位を何という？", "answer": "こうねん", "answerLen": 4, "level": 2}, {"id": 31, "genre": "生活・雑学", "text": "7月7日の夜に、織姫と彦星が天の川を渡って会うという中国伝来の行事は？", "answer": "たなばた", "answerLen": 4, "level": 2}, {"id": 32, "genre": "エンタメ", "text": "毎年大晦日の夜にNHKで放送される、伝統的な男女対抗の歌番組といえば何？", "answer": "こうはくうたがっせん", "answerLen": 10, "level": 2}, {"id": 33, "genre": "文化・芸術", "text": "機械仕掛けによって自動的に楽曲を演奏する、オランダ語由来の名がついた楽器は？", "answer": "おるごーる", "answerLen": 5, "level": 2}, {"id": 34, "genre": "地理", "text": "東北地方の方言で「牛」を意味する言葉が含まれている、福島県の郷土玩具とは何？", "answer": "あかべこ", "answerLen": 4, "level": 2}, {"id": 35, "genre": "文化・芸術", "text": "神社などにおいて内と外を分ける境に立てられ、主に赤く塗られた門の一種の名称は？", "answer": "とりい", "answerLen": 3, "level": 2}, {"id": 36, "genre": "スポーツ", "text": "バスケットボールにおいて、ボールを直接リングに落とすように入れる方法を何という？", "answer": "だんくしゅーと", "answerLen": 7, "level": 2}, {"id": 37, "genre": "地理", "text": "47都道府県を五十音順に並べたとき、最初に来るのは愛知県ですが、最後に来るのは？", "answer": "わかやまけん", "answerLen": 6, "level": 2}, {"id": 38, "genre": "歴史", "text": "江戸時代末期、黒船を率いて浦賀に来航し、日本に開国を迫ったアメリカの軍提督は誰？", "answer": "ぺりー", "answerLen": 3, "level": 2}, {"id": 39, "genre": "エンタメ", "text": "スタジオジブリの映画で、森に住む大きな不思議な生き物と姉妹の交流を描いた作品は？", "answer": "となりのととろ", "answerLen": 7, "level": 2}, {"id": 40, "genre": "生活・雑学", "text": "小型マグロやカツオ類などを対象に、釣り竿を使って魚を一匹釣り上げる漁法を何という？", "answer": "いっぽんづり", "answerLen": 6, "level": 3}, {"id": 41, "genre": "地理", "text": "南アメリカ大陸を流れる世界最大級の河川で、流域に広大な熱帯雨林を持つ川の名前は何？", "answer": "あまぞん", "answerLen": 4, "level": 3}, {"id": 42, "genre": "エンタメ", "text": "漫画『ONE PIECE』の主人公、モンキー・D・ルフィが食べた悪魔の実の名前は何？", "answer": "ごむごむのみ", "answerLen": 6, "level": 3}, {"id": 43, "genre": "文化・芸術", "text": "太宰治の小説で、処刑される親友のために走り続けるメロスの姿を描いた作品のタイトルは何？", "answer": "はしれめろす", "answerLen": 6, "level": 3}, {"id": 44, "genre": "生活・雑学", "text": "春になると多くの人を悩ませるイメージのある、スギなどの花粉が原因で起こるアレルギーは？", "answer": "かふんしょう", "answerLen": 6, "level": 3}, {"id": 45, "genre": "科学・数学", "text": "空気中に約78%含まれており、食品の酸化を防ぐための封入ガスとしても利用される気体は何？", "answer": "ちっそ", "answerLen": 3, "level": 3}, {"id": 46, "genre": "生活・雑学", "text": "住民票を有する全ての国民に1人1つの番号を割り当て、主に行政の効率化を高める制度の名称は？", "answer": "まいなんばー", "answerLen": 6, "level": 3}, {"id": 47, "genre": "生活・雑学", "text": "手応えがないことを表すことわざで、のれんに続くのは腕押しですが、ぬかに続くのは何でしょう？", "answer": "くぎ", "answerLen": 2, "level": 3}, {"id": 48, "genre": "エンタメ", "text": "漫画『ドラえもん』の主人公・ドラえもんの好物はどら焼きですが、妹のドラミちゃんの好物は何？", "answer": "めろんぱん", "answerLen": 5, "level": 3}, {"id": 49, "genre": "歴史", "text": "幕末の土佐藩出身の志士で、薩摩藩と長州藩の間を取り持ち「薩長同盟」を成立させた日本の歴史的英雄は誰？", "answer": "さかもとりょうま", "answerLen": 8, "level": 3}, {"id": 50, "genre": "文化・芸術", "text": "マダム・タッソーの展示品や歌手・デーモン閣下のフレーズでも知られる、蝋でつくられた彫刻のことを何という？", "answer": "ろうにんぎょう", "answerLen": 7, "level": 3}, {"id": 51, "genre": "歴史", "text": "ピラミッドの横にあることでも知られる、ライオンの身体と人間の顔を持った神聖な存在として神話に登場する生物は？", "answer": "すふぃんくす", "answerLen": 6, "level": 3}, {"id": 52, "genre": "科学・数学", "text": "19世紀のイギリスの博物学者で、ガラパゴス諸島での観察をもとに『種の起源』を著し、進化論を提唱した人物は誰？", "answer": "だーうぃん", "answerLen": 5, "level": 3}, {"id": 53, "genre": "科学・数学", "text": "雨上がりの晴れた日によく見られ、日本では「幸運の象徴」とも言われるこの赤から紫までの7色の光の帯のことを何という？", "answer": "にじ", "answerLen": 2, "level": 3}, {"id": 54, "genre": "科学・数学", "text": "1666年、リンゴが木から落ちるのを見て「万有引力」の法則を思いついたというエピソードで知られる、イギリスの物理学者は誰？", "answer": "にゅーとん", "answerLen": 5, "level": 4}, {"id": 55, "genre": "文化・芸術", "text": "スペインのバルセロナにあり、1882年の着工から140年以上経った今も建設が続いている、ガウディ設計の巨大な教会を何という？", "answer": "さぐらだふぁみりあ", "answerLen": 9, "level": 4}, {"id": 56, "genre": "科学・数学", "text": "1905年にアインシュタインが発表した、時間と空間の歪みを説明し、現代物理学の基礎となった「E=mc²」の式で有名な理論は何？", "answer": "そうたいせいりろん", "answerLen": 9, "level": 4}, {"id": 57, "genre": "文化・芸術", "text": "19世紀のロンドンを舞台に、名探偵シャーロック・ホームズが相棒のワトソンと共に難事件を解決するシリーズを書いたイギリスの作家は？", "answer": "こなんどいる", "answerLen": 6, "level": 4}, {"id": 58, "genre": "文化・芸術", "text": "いじめられていた亀を助けたお礼に、竜宮城へ連れて行かれ、最後に玉手箱を開けておじいさんになってしまう、日本の有名な昔話の主人公は誰？", "answer": "うらしまたろう", "answerLen": 7, "level": 4}, {"id": 59, "genre": "生活・雑学", "text": "24時間営業で、お弁当や飲み物の販売だけでなく、公共料金の支払いや宅配便の受け取りもできる、街中でよく見かける便利なお店の総称は何？", "answer": "こんびにえんすすとあ", "answerLen": 10, "level": 4}, {"id": 60, "genre": "生活・雑学", "text": "「腕を前から上にあげて、大きく背をそらす運動から」のように、ピアノの伴奏に合わせて体を動かす、日本の朝の風景としておなじみの体操は何？", "answer": "らじおたいそう", "answerLen": 7, "level": 4}, {"id": 61, "genre": "生活・雑学", "text": "今では陸上競技などでひとりの選手が一気にたくさんの相手を追い抜く際に用いられることもある、土から引っ張り抜く様子になぞらえた、野菜の名称が入った言葉は？", "answer": "ごぼうぬき", "answerLen": 5, "level": 4}, {"id": 62, "genre": "文化・芸術", "text": "「祇園精舎の鐘の声、諸行無常の響きあり。娑羅双樹の花の色、盛者必衰の理をあらわす。」という有名な一節で始まり、平家一門の栄華と没落を琵琶法師の語りによって伝えた、鎌倉時代に成立した軍記物語は何？", "answer": "へいけものがたり", "answerLen": 8, "level": 5}, {"id": 63, "genre": "地理", "text": "1972年のユネスコ総会で採択された条約に基づき、人類共通の財産として未来に引き継ぐべき価値があると認められた遺跡や自然環境のことで、日本では法隆寺や姫路城、知床、屋久島などが登録されているものを総称して何という？", "answer": "せかいいさん", "answerLen": 6, "level": 5}, {"id": 64, "genre": "生活・雑学", "text": "「誰もが自由に編集できるフリー百科事典」を掲げる多言語プロジェクトで、その名称はハワイ語で「速い」を意味する言葉と「エンサイクロペディア」を掛け合わせた造語であり、2001年にジミー・ウェールズらによって開始されたWebサイトは何？", "answer": "うぃきぺでぃあ", "answerLen": 7, "level": 5}, {"id": 65, "genre": "文化・芸術", "text": "卒業式などで、在校生から卒業生に宛てて言葉を送る送辞に対し、卒業生から在校生に宛てて言葉を返すのは何という？", "answer": "とうじ", "answerLen": 3, "level": 3}, {"id": 66, "genre": "科学・数学", "text": "湖にスイレンの花が落ちた。スイレンは1分経つと2倍に増える。湖がスイレンでいっぱいになるのに48分かかる。では、スイレンが湖のちょうど半分になるのに何分かかるだろうか？", "answer": "47", "answerLen": 2, "level": 5}, {"id": 67, "genre": "エンタメ", "text": "新選組の副長・土方歳三や一番隊組長・沖田総司が登場する、宇宙人が来襲した江戸を舞台にした空知英秋の漫画は？", "answer": "ぎんたま", "answerLen": 4, "level": 3}, {"id": 68, "genre": "エンタメ", "text": "水星、火星、木星などの太陽系の惑星を守護星に持つセーラー戦士たちが地球の平和を守るために戦う、武内直子原作の大人気アニメは何？", "answer": "せーらーむーん", "answerLen": 7, "level": 4}, {"id": 69, "genre": "スポーツ", "text": "アメリカ西海岸の都市ロサンゼルスに本拠地を置き、大谷翔平や山本由伸が所属することで日本でも注目されているMLBの球団は？", "answer": "どじゃーす", "answerLen": 5, "level": 3}, {"id": 70, "genre": "エンタメ", "text": "1582年に明智光秀が織田信長を裏切った「本能寺の変」を題材に、ダンスユニット・エグスプロージョンがYouTubeで公開し大ヒットしたリズムネタは何？", "answer": "ほんのうじのへん", "answerLen": 8, "level": 4}, {"id": 71, "genre": "地理", "text": "「うどん県」という別名で観光アピールをしており、特産品である讃岐うどんの名産地として知られる四国の都道府県はどこ？", "answer": "かがわけん", "answerLen": 5, "level": 3}, {"id": 72, "genre": "エンタメ", "text": "劇中でエルサが歌う「Let It Go」という曲も大ヒットした、雪の女王と妹のアナの冒険を描いたディズニー映画のタイトルは？", "answer": "あなとゆきのじょおう", "answerLen": 10, "level": 4}, {"id": 73, "genre": "科学・数学", "text": "元素記号はAl。軽くて加工しやすいため、飲料の缶や一円玉の原料として広く使われている金属は何？", "answer": "あるみにうむ", "answerLen": 6, "level": 3}, {"id": 74, "genre": "生活・雑学", "text": "「箸」にあって「スプーン」にない。「イヤリング」にあって「ネックレス」にない。「手袋」にあって「帽子」にない。「スノーボード」はどっち？", "answer": "ない", "answerLen": 2, "level": 4}];
+        const questionsData = [{"id": 1, "genre": "生活・雑学", "text": "令和元年は西暦何年？", "answer": "2019", "answerLen": 4, "level": 1}, {"id": 2, "genre": "生活・雑学", "text": "1ダースは何個のこと？", "answer": "12", "answerLen": 2, "level": 1}, {"id": 3, "genre": "生活・雑学", "text": "1週間は何日間のこと？", "answer": "7", "answerLen": 1, "level": 1}, {"id": 4, "genre": "科学・数学", "text": "五角形を英語で何という？", "answer": "ぺんたごん", "answerLen": 5, "level": 1}, {"id": 5, "genre": "文化・芸術", "text": "囲碁で使う石の色は白と何？", "answer": "くろ", "answerLen": 2, "level": 1}, {"id": 6, "genre": "生活・雑学", "text": "「百足」この漢字は何と読む？", "answer": "むかで", "answerLen": 3, "level": 1}, {"id": 7, "genre": "生活・雑学", "text": "旧暦で12月のことを何という？", "answer": "しわす", "answerLen": 3, "level": 1}, {"id": 8, "genre": "地理", "text": "日本で一番面積が広い都道府県は？", "answer": "ほっかいどう", "answerLen": 6, "level": 1}, {"id": 9, "genre": "生活・雑学", "text": "信号機で「止まれ」を意味する色は？", "answer": "あか", "answerLen": 2, "level": 1}, {"id": 10, "genre": "科学・数学", "text": "地球の周りを回っている唯一の衛星は？", "answer": "つき", "answerLen": 2, "level": 1}, {"id": 11, "genre": "生活・雑学", "text": "なぞなぞです。冷蔵庫の中にいる動物は？", "answer": "ぞう", "answerLen": 2, "level": 1}, {"id": 12, "genre": "生活・雑学", "text": "設定した時間になるとベルなどが鳴動する時計は？", "answer": "めざましどけい", "answerLen": 7, "level": 2}, {"id": 13, "genre": "生活・雑学", "text": "演技が平坦に見える人を、野菜に例えて何という？", "answer": "だいこんやくしゃ", "answerLen": 8, "level": 2}, {"id": 14, "genre": "生活・雑学", "text": "なぞなぞです。「8,999999…」これ何の動物？", "answer": "くじゃく", "answerLen": 4, "level": 2}, {"id": 15, "genre": "地理", "text": "世界で一番高い山「エベレスト」がある山脈の名前は何？", "answer": "ひまらや", "answerLen": 4, "level": 2}, {"id": 16, "genre": "スポーツ", "text": "主にテニスや野球などのスポーツ時、手首に着ける装飾品は？", "answer": "りすとばんど", "answerLen": 6, "level": 2}, {"id": 17, "genre": "文化・芸術", "text": "音楽の父と呼ばれ、「G線上のアリア」等を作曲した人物は？", "answer": "ばっは", "answerLen": 3, "level": 2}, {"id": 18, "genre": "文化・芸術", "text": "童話『ピノキオ』で、嘘をつくと伸びてしまう体の一部はどこ？", "answer": "はな", "answerLen": 2, "level": 2}, {"id": 19, "genre": "生活・雑学", "text": "毎年1月1日に届く、新年の挨拶が書かれたハガキを何という？", "answer": "ねんがじょう", "answerLen": 6, "level": 2}, {"id": 20, "genre": "生活・雑学", "text": "年が明けてから初めて神社や寺院などに参拝する行事を何という？", "answer": "はつもうで", "answerLen": 5, "level": 2}, {"id": 21, "genre": "生物", "text": "首が非常に長く、高い場所の葉を食べる、アフリカに住む動物は？", "answer": "きりん", "answerLen": 3, "level": 2}, {"id": 22, "genre": "科学・数学", "text": "鉛筆の芯の主な原料で、ダイヤモンドと同じ炭素からなる物質は？", "answer": "こくえん", "answerLen": 4, "level": 2}, {"id": 23, "genre": "歴史", "text": "1789年に起こり、ルイ16世が処刑された市民革命を何という？", "answer": "ふらんすかくめい", "answerLen": 8, "level": 2}, {"id": 24, "genre": "科学・数学", "text": "七転八倒、二束三文、岡目八目。出てきた漢数字を全て足すといくつ？", "answer": "28", "answerLen": 2, "level": 2}, {"id": 25, "genre": "スポーツ", "text": "オリンピックの五輪のマーク。青、黄、黒、緑、あともう一色は何色？", "answer": "あか", "answerLen": 2, "level": 2}, {"id": 26, "genre": "エンタメ", "text": "赤い帽子にヒゲが特徴の、任天堂の人気アクションゲームの主人公は？", "answer": "まりお", "answerLen": 3, "level": 2}, {"id": 27, "genre": "文化・芸術", "text": "おじいさんが川から流れてきた大きな桃を拾うところから始まる物語は？", "answer": "ももたろう", "answerLen": 5, "level": 2}, {"id": 28, "genre": "文化・芸術", "text": "金属板を靴底の爪先や踵につけて、床を踏み鳴らしながら踊るスタイルは？", "answer": "たっぷだんす", "answerLen": 6, "level": 2}, {"id": 29, "genre": "科学・数学", "text": "光が1年間に進む距離を1とする、天文学で使われる距離の単位を何という？", "answer": "こうねん", "answerLen": 4, "level": 2}, {"id": 30, "genre": "生活・雑学", "text": "7月7日の夜に、織姫と彦星が天の川を渡って会うという中国伝来の行事は？", "answer": "たなばた", "answerLen": 4, "level": 2}, {"id": 31, "genre": "エンタメ", "text": "毎年大晦日の夜にNHKで放送される、伝統的な男女対抗の歌番組といえば何？", "answer": "こうはくうたがっせん", "answerLen": 10, "level": 2}, {"id": 32, "genre": "文化・芸術", "text": "機械仕掛けによって自動的に楽曲を演奏する、オランダ語由来の名がついた楽器は？", "answer": "おるごーる", "answerLen": 5, "level": 2}, {"id": 33, "genre": "地理", "text": "東北地方の方言で「牛」を意味する言葉が含まれている、福島県の郷土玩具とは何？", "answer": "あかべこ", "answerLen": 4, "level": 2}, {"id": 34, "genre": "文化・芸術", "text": "神社などにおいて内と外を分ける境に立てられ、主に赤く塗られた門の一種の名称は？", "answer": "とりい", "answerLen": 3, "level": 2}, {"id": 35, "genre": "スポーツ", "text": "バスケットボールにおいて、ボールを直接リングに落とすように入れる方法を何という？", "answer": "だんくしゅーと", "answerLen": 7, "level": 2}, {"id": 36, "genre": "地理", "text": "47都道府県を五十音順に並べたとき、最初に来るのは愛知県ですが、最後に来るのは？", "answer": "わかやまけん", "answerLen": 6, "level": 2}, {"id": 37, "genre": "歴史", "text": "江戸時代末期、黒船を率いて浦賀に来航し、日本に開国を迫ったアメリカの軍提督は誰？", "answer": "ぺりー", "answerLen": 3, "level": 2}, {"id": 38, "genre": "エンタメ", "text": "スタジオジブリの映画で、森に住む大きな不思議な生き物と姉妹の交流を描いた作品は？", "answer": "となりのととろ", "answerLen": 7, "level": 2}, {"id": 39, "genre": "生活・雑学", "text": "小型マグロやカツオ類などを対象に、釣り竿を使って魚を一匹釣り上げる漁法を何という？", "answer": "いっぽんづり", "answerLen": 6, "level": 3}, {"id": 40, "genre": "地理", "text": "南アメリカ大陸を流れる世界最大級の河川で、流域に広大な熱帯雨林を持つ川の名前は何？", "answer": "あまぞん", "answerLen": 4, "level": 3}, {"id": 41, "genre": "エンタメ", "text": "漫画『ONE PIECE』の主人公、モンキー・D・ルフィが食べた悪魔の実の名前は何？", "answer": "ごむごむのみ", "answerLen": 6, "level": 3}, {"id": 42, "genre": "文化・芸術", "text": "太宰治の小説で、処刑される親友のために走り続けるメロスの姿を描いた作品のタイトルは何？", "answer": "はしれめろす", "answerLen": 6, "level": 3}, {"id": 43, "genre": "生活・雑学", "text": "春になると多くの人を悩ませるイメージのある、スギなどの花粉が原因で起こるアレルギーは？", "answer": "かふんしょう", "answerLen": 6, "level": 3}, {"id": 44, "genre": "科学・数学", "text": "空気中に約78%含まれており、食品の酸化を防ぐための封入ガスとしても利用される気体は何？", "answer": "ちっそ", "answerLen": 3, "level": 3}, {"id": 45, "genre": "生活・雑学", "text": "住民票を有する全ての国民に1人1つの番号を割り当て、主に行政の効率化を高める制度の名称は？", "answer": "まいなんばー", "answerLen": 6, "level": 3}, {"id": 46, "genre": "生活・雑学", "text": "手応えがないことを表すことわざで、のれんに続くのは腕押しですが、ぬかに続くのは何でしょう？", "answer": "くぎ", "answerLen": 2, "level": 3}, {"id": 47, "genre": "エンタメ", "text": "漫画『ドラえもん』の主人公・ドラえもんの好物はどら焼きですが、妹のドラミちゃんの好物は何？", "answer": "めろんぱん", "answerLen": 5, "level": 3}, {"id": 48, "genre": "歴史", "text": "幕末の土佐藩出身の志士で、薩摩藩と長州藩の間を取り持ち「薩長同盟」を成立させた日本の歴史的英雄は誰？", "answer": "さかもとりょうま", "answerLen": 8, "level": 3}, {"id": 49, "genre": "文化・芸術", "text": "マダム・タッソーの展示品や歌手・デーモン閣下のフレーズでも知られる、蝋でつくられた彫刻のことを何という？", "answer": "ろうにんぎょう", "answerLen": 7, "level": 3}, {"id": 50, "genre": "歴史", "text": "ピラミッドの横にあることでも知られる、ライオンの身体と人間の顔を持った神聖な存在として神話に登場する生物は？", "answer": "すふぃんくす", "answerLen": 6, "level": 3}, {"id": 51, "genre": "科学・数学", "text": "19世紀のイギリスの博物学者で、ガラパゴス諸島での観察をもとに『種の起源』を著し、進化論を提唱した人物は誰？", "answer": "だーうぃん", "answerLen": 5, "level": 3}, {"id": 52, "genre": "科学・数学", "text": "雨上がりの晴れた日によく見られ、日本では「幸運の象徴」とも言われるこの赤から紫までの7色の光の帯のことを何という？", "answer": "にじ", "answerLen": 2, "level": 3}, {"id": 53, "genre": "科学・数学", "text": "1666年、リンゴが木から落ちるのを見て「万有引力」の法則を思いついたというエピソードで知られる、イギリスの物理学者は誰？", "answer": "にゅーとん", "answerLen": 5, "level": 4}, {"id": 54, "genre": "文化・芸術", "text": "スペインのバルセロナにあり、1882年の着工から140年以上経った今も建設が続いている、ガウディ設計の巨大な教会を何という？", "answer": "さぐらだふぁみりあ", "answerLen": 9, "level": 4}, {"id": 55, "genre": "科学・数学", "text": "1905年にアインシュタインが発表した、時間と空間の歪みを説明し、現代物理学の基礎となった「E=mc²」の式で有名な理論は何？", "answer": "そうたいせいりろん", "answerLen": 9, "level": 4}, {"id": 56, "genre": "文化・芸術", "text": "19世紀のロンドンを舞台に、名探偵シャーロック・ホームズが相棒のワトソンと共に難事件を解決するシリーズを書いたイギリスの作家は？", "answer": "こなんどいる", "answerLen": 6, "level": 4}, {"id": 57, "genre": "文化・芸術", "text": "いじめられていた亀を助けたお礼に、竜宮城へ連れて行かれ、最後に玉手箱を開けておじいさんになってしまう、日本の有名な昔話の主人公は誰？", "answer": "うらしまたろう", "answerLen": 7, "level": 4}, {"id": 58, "genre": "生活・雑学", "text": "24時間営業で、お弁当や飲み物の販売だけでなく、公共料金の支払いや宅配便の受け取りもできる、街中でよく見かける便利なお店の総称は何？", "answer": "こんびにえんすすとあ", "answerLen": 10, "level": 4}, {"id": 59, "genre": "生活・雑学", "text": "「腕を前から上にあげて、大きく背をそらす運動から」のように、ピアノの伴奏に合わせて体を動かす、日本の朝の風景としておなじみの体操は何？", "answer": "らじおたいそう", "answerLen": 7, "level": 4}, {"id": 60, "genre": "生活・雑学", "text": "今では陸上競技などでひとりの選手が一気にたくさんの相手を追い抜く際に用いられることもある、土から引っ張り抜く様子になぞらえた、野菜の名称が入った言葉は？", "answer": "ごぼうぬき", "answerLen": 5, "level": 4}, {"id": 61, "genre": "文化・芸術", "text": "「祇園精舎の鐘の声、諸行無常の響きあり。娑羅双樹の花の色、盛者必衰の理をあらわす。」という有名な一節で始まり、平家一門の栄華と没落を琵琶法師の語りによって伝えた、鎌倉時代に成立した軍記物語は何？", "answer": "へいけものがたり", "answerLen": 8, "level": 5}, {"id": 62, "genre": "地理", "text": "1972年のユネスコ総会で採択された条約に基づき、人類共通の財産として未来に引き継ぐべき価値があると認められた遺跡や自然環境のことで、日本では法隆寺や姫路城、知床、屋久島などが登録されているものを総称して何という？", "answer": "せかいいさん", "answerLen": 6, "level": 5}, {"id": 63, "genre": "生活・雑学", "text": "「誰もが自由に編集できるフリー百科事典」を掲げる多言語プロジェクトで、その名称はハワイ語で「速い」を意味する言葉と「エンサイクロペディア」を掛け合わせた造語であり、2001年にジミー・ウェールズらによって開始されたWebサイトは何？", "answer": "うぃきぺでぃあ", "answerLen": 7, "level": 5}, {"id": 64, "genre": "文化・芸術", "text": "卒業式などで、在校生から卒業生に宛てて言葉を送る送辞に対し、卒業生から在校生に宛てて言葉を返すのは何という？", "answer": "とうじ", "answerLen": 3, "level": 3}, {"id": 65, "genre": "科学・数学", "text": "湖にスイレンの花が落ちた。スイレンは1分経つと2倍に増える。湖がスイレンでいっぱいになるのに48分かかる。では、スイレンが湖のちょうど半分になるのに何分かかるだろうか？", "answer": "47", "answerLen": 2, "level": 5}, {"id": 66, "genre": "エンタメ", "text": "新選組の副長・土方歳三や一番隊組長・沖田総司が登場する、宇宙人が来襲した江戸を舞台にした空知英秋の漫画は？", "answer": "ぎんたま", "answerLen": 4, "level": 3}, {"id": 67, "genre": "エンタメ", "text": "水星、火星、木星などの太陽系の惑星を守護星に持つセーラー戦士たちが地球の平和を守るために戦う、武内直子原作の大人気アニメは何？", "answer": "せーらーむーん", "answerLen": 7, "level": 4}, {"id": 68, "genre": "スポーツ", "text": "アメリカ西海岸の都市ロサンゼルスに本拠地を置き、大谷翔平や山本由伸が所属することで日本でも注目されているMLBの球団は？", "answer": "どじゃーす", "answerLen": 5, "level": 3}, {"id": 69, "genre": "エンタメ", "text": "1582年に明智光秀が織田信長を裏切った「本能寺の変」を題材に、ダンスユニット・エグスプロージョンがYouTubeで公開し大ヒットしたリズムネタは何？", "answer": "ほんのうじのへん", "answerLen": 8, "level": 4}, {"id": 70, "genre": "地理", "text": "「うどん県」という別名で観光アピールをしており、特産品である讃岐うどんの名産地として知られる四国の都道府県はどこ？", "answer": "かがわけん", "answerLen": 5, "level": 3}, {"id": 71, "genre": "エンタメ", "text": "劇中でエルサが歌う「Let It Go」という曲も大ヒットした、雪の女王と妹のアナの冒険を描いたディズニー映画のタイトルは？", "answer": "あなとゆきのじょおう", "answerLen": 10, "level": 4}, {"id": 72, "genre": "科学・数学", "text": "元素記号はAl。軽くて加工しやすいため、飲料の缶や一円玉の原料として広く使われている金属は何？", "answer": "あるみにうむ", "answerLen": 6, "level": 3}, {"id": 73, "genre": "生活・雑学", "text": "「箸」にあって「スプーン」にない。「イヤリング」にあって「ネックレス」にない。「手袋」にあって「帽子」にない。「スノーボード」はどっち？", "answer": "ない", "answerLen": 2, "level": 4}, {"id": 74, "genre": "生活・雑学", "text": "｢ドタキャン｣の｢ドタ｣って何の略？", "answer": "どたんば", "answerLen": 4, "level": 1}, {"id": 75, "genre": "生活・雑学", "text": "同じスートの10・J・Ｑ・K・Aで構成された、一般的なポーカーで最強とされる役は？", "answer": "ろいやるすとれーとふらっしゅ", "answerLen": 14, "level": 3}, {"id": 76, "genre": "科学・数学", "text": "2の平方根の覚え方といえば｢一夜一夜に人見頃｣ですが、3の平方根の覚え方といえば？", "answer": "ひとなみにおごれや", "answerLen": 9, "level": 3}, {"id": 77, "genre": "文化・芸術", "text": "百人一首において、上の句が読まれ始めてから、下の句が判別できるまでの部分を何という？", "answer": "きまりじ", "answerLen": 4, "level": 3}, {"id": 78, "genre": "生活・雑学", "text": "｢あかい｣｢まるい｣｢おおきい｣｢うまい｣の頭文字が由来とされている、イチゴの品種名は？", "answer": "あまおう", "answerLen": 4, "level": 3}, {"id": 79, "genre": "生活・雑学", "text": "｢無差別かつ大量に送信された迷惑メール｣と｢ランチョンミート缶詰の製品名｣に共通する言葉は？", "answer": "すぱむ", "answerLen": 3, "level": 3}, {"id": 80, "genre": "エンタメ", "text": "｢まる｣｢6月6日｣｢三日月｣といえば、何のキャラクターの絵描き歌？", "answer": "どらえもん", "answerLen": 5, "level": 2}, {"id": 81, "genre": "生活・雑学", "text": "魚のすり身を棒に巻き付けた加工食品はちくわといいますが、米を棒に巻き付けた加工食品は何という？", "answer": "きりたんぽ", "answerLen": 5, "level": 3}, {"id": 82, "genre": "生物", "text": "「こ」「むぎ」「むね」「ばす」の前に共通してつく生物名は？", "answer": "はと", "answerLen": 2, "level": 2}, {"id": 83, "genre": "文化・芸術", "text": "馬に乗って的を射る武術および神事の名称は？", "answer": "やぶさめ", "answerLen": 4, "level": 2}, {"id": 84, "genre": "生活・雑学", "text": "水面に富士山が上下逆転した姿で映る風景を何という？", "answer": "さかさふじ", "answerLen": 5, "level": 2}, {"id": 85, "genre": "生活・雑学", "text": "童話『うさぎとかめ』競争に勝ったのは？", "answer": "かめ", "answerLen": 2, "level": 1}, {"id": 86, "genre": "文化・芸術", "text": "元は仏教用語の「クシャナ」が語源とされている、極めて短い時間のことを何という？", "answer": "せつな", "answerLen": 3, "level": 2}, {"id": 87, "genre": "生活・雑学", "text": "濃さや硬さを表す記号として「H」「B」「F」が使われる筆記用具の名称は？", "answer": "えんぴつ", "answerLen": 4, "level": 2}, {"id": 88, "genre": "スポーツ", "text": "往路は1月2日、復路は1月3日に行われる、大学対抗駅伝の通称は？", "answer": "はこねえきでん", "answerLen": 7, "level": 2}, {"id": 89, "genre": "文化・芸術", "text": "漢字の「百」から一本抜いた形から、99歳の長寿祝いは何という？", "answer": "はくじゅ", "answerLen": 4, "level": 2}, {"id": 90, "genre": "科学・数学", "text": "「（上底＋下底）×高さ÷2」で面積を導くことのできる図形は何？", "answer": "へいこうしへんけい", "answerLen": 9, "level": 2}, {"id": 91, "genre": "生活・雑学", "text": "日本での名称はサーティワンアイスクリーム。「BR」と書かれたロゴがお馴染みのチェーン名は？", "answer": "ばすきんろびんす", "answerLen": 8, "level": 3}, {"id": 92, "genre": "生活・雑学", "text": "地図記号で丸にバツ印が表すのは警察署ですが、バツ印が表すのは？", "answer": "こうばん", "answerLen": 4, "level": 2}];
 
         // --- Keyboard Logic ---
         const Keyboard = {
@@ -463,7 +488,6 @@
                         const btn = document.createElement('div');
                         btn.className = 'kb-key';
                         
-                        // Spacer
                         if(char === '') {
                             btn.style.visibility = 'hidden';
                         }
@@ -553,57 +577,105 @@
         // --- UI Manager ---
         const UI = {
             showManual: function() { document.getElementById('manual-modal').style.display = 'flex'; },
-            closeManual: function() { document.getElementById('manual-modal').style.display = 'none'; }
+            closeManual: function() { document.getElementById('manual-modal').style.display = 'none'; },
+            
+            showMPPopup: function(change) {
+                if(change === 0) return;
+                const el = document.createElement('div');
+                el.className = change > 0 ? 'mp-popup plus' : 'mp-popup minus';
+                el.innerText = change > 0 ? `+${change}` : change;
+                document.querySelector('.gauge-container .gauge').appendChild(el);
+                setTimeout(() => el.remove(), 1000);
+            }
         };
 
         // --- Game Logic ---
         const Game = {
             state: {
-                currentQIndex: 0, remainingMP: 50, totalScore: 0,
-                questions: [], currentQ_betMP: 0, currentQ_openedParts: 0, currentQ_attempts: 0, parts: [],
+                mode: 'normal', // 'normal' or 'endless'
+                currentQIndex: 0, 
+                remainingMP: 50, 
+                totalScore: 0,
+                streak: 0,
+                questions: [], 
+                currentQ_betMP: 0, 
+                currentQ_openedParts: 0, 
+                currentQ_attempts: 0, 
+                parts: [],
                 currentInput: "",
-                phase: "select",
+                phase: "select", // 'select', 'answer'
                 selectedIndices: new Set(),
                 lastWrongAnswerOpenedCount: -1,
-                isGenreOpened: false // NEW
+                isGenreOpened: false
             },
 
-            init: function() {
+            init: function(mode) {
+                this.state.mode = mode;
                 const hs = localStorage.getItem('pq_highscore');
                 document.getElementById('hs-display').innerText = hs ? hs : 0;
                 
-                const pools = {1:[], 2:[], 3:[], 4:[], 5:[]};
-                questionsData.forEach(q => { if(pools[q.level]) pools[q.level].push(q); });
-                
-                const selectedQs = [];
-                for(let i=1; i<=5; i++) {
-                    let pool = pools[i];
-                    if(pool.length === 0) pool = pools[1];
-                    const randomQ = pool[Math.floor(Math.random() * pool.length)];
-                    selectedQs.push({...randomQ, stageLevel: i});
+                // Initialize based on mode
+                if (mode === 'normal') {
+                    this.state.remainingMP = 50;
+                    document.getElementById('score-label').innerText = "獲得スコア";
+                    
+                    const pools = {1:[], 2:[], 3:[], 4:[], 5:[]};
+                    questionsData.forEach(q => { if(pools[q.level]) pools[q.level].push(q); });
+                    
+                    const selectedQs = [];
+                    for(let i=1; i<=5; i++) {
+                        let pool = pools[i];
+                        if(pool.length === 0) pool = pools[1];
+                        const randomQ = pool[Math.floor(Math.random() * pool.length)];
+                        selectedQs.push({...randomQ, stageLevel: i});
+                    }
+                    this.state.questions = selectedQs;
+                    
+                } else { // Endless
+                    this.state.remainingMP = 20;
+                    document.getElementById('score-label').innerText = "STREAK";
+                    this.state.streak = 0;
+                    this.state.questions = []; // Dynamic
                 }
-                
-                this.state.questions = selectedQs;
+
                 this.state.currentQIndex = 0;
-                this.state.remainingMP = 50;
                 this.state.totalScore = 0;
                 
+                // Adjust UI
                 document.getElementById('start-screen').style.display = 'none';
                 document.getElementById('game-area').style.display = 'block';
                 document.getElementById('final-modal').style.display = 'none';
                 
+                // Button Text
+                const giveUpBtn = document.getElementById('giveup-btn');
+                giveUpBtn.innerText = mode === 'endless' ? "スキップ (-10MP)" : "諦める";
+
                 Keyboard.init();
                 this.updateGlobalUI();
                 this.startLevel();
             },
 
             startLevel: function() {
-                if (this.state.currentQIndex >= 5) {
-                    this.finishGame();
-                    return;
+                // Game Over Checks
+                if (this.state.mode === 'normal') {
+                    if (this.state.currentQIndex >= 5) {
+                        this.finishGame();
+                        return;
+                    }
+                } else {
+                    // Endless: Game over if MP < 1
+                    if (this.state.remainingMP < 1) {
+                        this.finishGame();
+                        return;
+                    }
+                    // Generate new question for endless
+                    const randQ = questionsData[Math.floor(Math.random() * questionsData.length)];
+                    this.state.questions.push({...randQ, stageLevel: randQ.level}); 
                 }
 
                 const q = this.state.questions[this.state.currentQIndex];
+                
+                // Reset Round State
                 this.state.currentQ_attempts = 0;
                 this.state.currentQ_openedParts = 0;
                 this.state.currentInput = "";
@@ -611,8 +683,11 @@
                 this.state.lastWrongAnswerOpenedCount = -1;
                 this.state.isGenreOpened = false;
                 
-                // Reset UI
-                document.getElementById('stage-display').innerText = `第 ${this.state.currentQIndex + 1} 階層 (Lv.${q.stageLevel})`;
+                // UI Reset
+                document.getElementById('stage-display').innerText = 
+                    this.state.mode === 'normal' 
+                    ? `第 ${this.state.currentQIndex + 1} 階層 (Lv.${q.stageLevel})`
+                    : `無限回廊: ${this.state.currentQIndex + 1} (Lv.${q.stageLevel})`;
                 
                 const genrePanel = document.getElementById('genre-valve');
                 genrePanel.className = 'genre-box closed';
@@ -639,19 +714,20 @@
                 const val = document.getElementById('bet-slider').value;
                 document.getElementById('bet-val-display').innerText = val;
                 
-                // Vibration effect
                 const container = document.querySelector('.bet-value');
                 container.classList.remove('shake-slight');
-                void container.offsetWidth; // trigger reflow
+                void container.offsetWidth; 
                 container.classList.add('shake-slight');
             },
 
             confirmBet: function() {
                 const bet = parseInt(document.getElementById('bet-slider').value);
-                this.state.remainingMP -= bet;
+                
+                // MP Consumption
+                this.changeMP(-bet);
                 this.state.currentQ_betMP = bet;
+                
                 document.getElementById('bet-modal').style.display = 'none';
-                this.updateGlobalUI();
                 this.splitQuestion(bet);
                 this.renderSlots();
                 this.setPhase('select');
@@ -660,9 +736,17 @@
             openGenre: function() {
                 if(this.state.isGenreOpened) return;
                 
+                // Endless Mode: Cost 5 MP
+                if (this.state.mode === 'endless') {
+                    if (this.state.remainingMP < 5) {
+                        this.showFeedback("MP不足", false, true);
+                        return;
+                    }
+                    this.changeMP(-5);
+                }
+                
                 const q = this.state.questions[this.state.currentQIndex];
                 this.state.isGenreOpened = true;
-                
                 const panel = document.getElementById('genre-valve');
                 panel.className = 'genre-box opened';
                 document.getElementById('genre-text').innerText = q.genre;
@@ -695,7 +779,7 @@
                     actions.appendChild(btnSend);
 
                     const btnPass = document.createElement('button');
-                    btnPass.innerText = "追加調査 (PASS)";
+                    btnPass.innerText = this.state.mode === 'endless' ? "パス (-3MP)" : "追加調査 (PASS)";
                     btnPass.className = "secondary";
                     btnPass.onclick = () => this.pass();
                     actions.appendChild(btnPass);
@@ -833,82 +917,130 @@
             handleWrongAnswer: function() {
                 this.state.lastWrongAnswerOpenedCount = this.state.currentQ_openedParts;
                 
-                this.state.currentQ_attempts++;
-                const bulbs = document.getElementById('attempts-container').children;
-                if(this.state.currentQ_attempts <= 3) {
-                    bulbs[3 - this.state.currentQ_attempts].classList.remove('lit');
-                    bulbs[3 - this.state.currentQ_attempts].classList.add('broken');
-                }
-                
+                // Clear input
                 this.state.currentInput = "";
                 this.renderSlots();
 
-                if(this.state.currentQ_attempts >= 3) {
-                    setTimeout(() => { this.calculateScore(false); }, 1000);
-                } else {
-                    setTimeout(() => {
-                        this.showFeedback("再調査開始", false, true);
-                        this.setPhase('select');
-                    }, 1000);
+                // Normal Mode Logic
+                if(this.state.mode === 'normal') {
+                    this.state.currentQ_attempts++;
+                    const bulbs = document.getElementById('attempts-container').children;
+                    if(this.state.currentQ_attempts <= 3) {
+                        bulbs[3 - this.state.currentQ_attempts].classList.remove('lit');
+                        bulbs[3 - this.state.currentQ_attempts].classList.add('broken');
+                    }
+                    if(this.state.currentQ_attempts >= 3) {
+                        setTimeout(() => { this.calculateScore(false); }, 1000);
+                        return;
+                    }
+                    setTimeout(() => { this.setPhase('select'); }, 1000);
+                } 
+                // Endless Mode Logic
+                else {
+                    // Penalty -3 MP
+                    if (this.state.remainingMP < 3) {
+                        this.showFeedback("MP不足\nゲームオーバー", false, true);
+                        setTimeout(() => this.finishGame(), 1500);
+                        return;
+                    }
+                    this.changeMP(-3);
+                    this.showFeedback("不正解 (-3MP)\n再調査", false, true);
+                    setTimeout(() => { this.setPhase('select'); }, 1000);
                 }
             },
 
             pass: function() {
-                this.state.currentInput = "";
-                this.renderSlots();
-                this.setPhase('select');
+                if (this.state.mode === 'endless') {
+                    // Pass to Re-open (-3 MP)
+                    if (this.state.remainingMP < 3) {
+                        this.showFeedback("MP不足", false, true);
+                        return;
+                    }
+                    this.changeMP(-3);
+                    this.state.currentInput = "";
+                    this.renderSlots();
+                    this.setPhase('select');
+                } else {
+                    // Normal Pass (Return to select)
+                    this.state.currentInput = "";
+                    this.renderSlots();
+                    this.setPhase('select');
+                }
             },
 
             giveUp: function() {
-                this.calculateScore(false);
+                // In Endless, this button triggers Skip (-10 MP)
+                if (this.state.mode === 'endless') {
+                    if (this.state.remainingMP < 10) {
+                        this.showFeedback("MP不足により\nスキップ不可", false, true);
+                        setTimeout(() => this.finishGame(), 1000);
+                        return;
+                    }
+                    this.changeMP(-10);
+                    this.nextLevel();
+                } else {
+                    this.calculateScore(false);
+                }
             },
 
             calculateScore: function(isClear) {
                 const q = this.state.questions[this.state.currentQIndex];
-                let roundScore = 0;
-                let detailsHtml = '';
-
+                
                 if(isClear) {
-                    // NEW SCORE LOGIC
-                    
-                    // 1. Knowledge Base
-                    const baseRate = this.state.isGenreOpened ? 500 : 800;
-                    
-                    // 2. Multiplier
-                    let multiplier = 1.0;
-                    if(this.state.currentQ_attempts === 1) multiplier = 0.75; // 2nd try
-                    if(this.state.currentQ_attempts === 2) multiplier = 0.25; // 3rd try
-                    
-                    const knowledgeBonus = Math.floor(q.stageLevel * baseRate * multiplier);
-                    
-                    // 3. Luck (Unopened)
-                    const totalParts = this.state.parts.length;
-                    const unopened = totalParts - this.state.currentQ_openedParts;
-                    const luckBonus = unopened * 500;
+                    if (this.state.mode === 'normal') {
+                        // Normal Scoring
+                        const baseRate = this.state.isGenreOpened ? 500 : 800;
+                        let multiplier = 1.0;
+                        if(this.state.currentQ_attempts === 1) multiplier = 0.75;
+                        if(this.state.currentQ_attempts === 2) multiplier = 0.25;
+                        
+                        const knowledgeBonus = Math.floor(q.stageLevel * baseRate * multiplier);
+                        const totalParts = this.state.parts.length;
+                        const unopened = totalParts - this.state.currentQ_openedParts;
+                        const luckBonus = unopened * 500;
 
-                    roundScore = knowledgeBonus + luckBonus;
+                        const roundScore = knowledgeBonus + luckBonus;
+                        this.state.totalScore += roundScore;
 
-                    detailsHtml = `
-                        <p>正解: ${q.answer}</p>
-                        <div class="result-row"><span>知識 (Lv.${q.stageLevel}):</span> <span>${knowledgeBonus}</span></div>
-                        <div class="result-row" style="color:#aaa; font-size:0.8em; text-align:right;">(基礎:${baseRate} × 倍率:${multiplier})</div>
-                        <div class="result-row"><span>運 (未開封${unopened}):</span> <span>${luckBonus}</span></div>
-                        <div class="result-row" style="color:var(--glow)"><span>合計:</span> <span>${roundScore}</span></div>
-                    `;
-                    document.getElementById('result-title').innerText = "ステージクリア";
+                        this.showResultModal(roundScore, `
+                            <p>正解: ${q.answer}</p>
+                            <div class="result-row"><span>知識 (Lv.${q.stageLevel}):</span> <span>${knowledgeBonus}</span></div>
+                            <div class="result-row"><span>運 (未開封${unopened}):</span> <span>${luckBonus}</span></div>
+                            <div class="result-row" style="color:var(--glow)"><span>合計:</span> <span>${roundScore}</span></div>
+                        `);
+                    } else {
+                        // Endless Scoring (MP Reward)
+                        const totalParts = this.state.parts.length;
+                        const unopened = totalParts - this.state.currentQ_openedParts;
+                        const mpReward = unopened + q.answerLen;
+                        
+                        this.changeMP(mpReward);
+                        this.state.streak++;
+                        this.state.totalScore = this.state.streak; // Score tracks streak
+
+                        this.showResultModal(null, `
+                            <p>正解: ${q.answer}</p>
+                            <div class="result-row"><span>未開封ボーナス:</span> <span>+${unopened} MP</span></div>
+                            <div class="result-row"><span>データ量ボーナス:</span> <span>+${q.answerLen} MP</span></div>
+                            <div class="result-row" style="color:var(--cyan)"><span>TOTAL:</span> <span>+${mpReward} MP</span></div>
+                        `, "解析完了");
+                    }
                 } else {
-                    detailsHtml = `
-                        <p style="color:red">解析失敗 / 撤退</p>
-                        <p>正解は: ${q.answer}</p>
-                        <div class="result-row"><span>スコア:</span> <span>0</span></div>
-                    `;
-                    document.getElementById('result-title').innerText = "解析不能";
+                    // Failed
+                    if (this.state.mode === 'normal') {
+                        this.showResultModal(0, `
+                            <p style="color:red">解析失敗 / 撤退</p>
+                            <p>正解は: ${q.answer}</p>
+                            <div class="result-row"><span>スコア:</span> <span>0</span></div>
+                        `, "解析不能");
+                    }
                 }
+            },
 
-                this.state.totalScore += roundScore;
+            showResultModal: function(score, html, title="ステージクリア") {
+                document.getElementById('result-title').innerText = title;
+                document.getElementById('result-details').innerHTML = html;
                 this.updateGlobalUI();
-
-                document.getElementById('result-details').innerHTML = detailsHtml;
                 document.getElementById('result-modal').style.display = 'flex';
             },
 
@@ -919,32 +1051,54 @@
             },
 
             finishGame: function() {
-                // Management Bonus
-                const mpBonus = this.state.remainingMP * 200;
-                this.state.totalScore += mpBonus;
-                
                 let rank = 'F';
-                if(this.state.totalScore >= 10000) rank = 'C';
-                if(this.state.totalScore >= 19000) rank = 'B';
-                if(this.state.totalScore >= 25000) rank = 'A';
-                if(this.state.totalScore >= 30000) rank = 'S';
-                if(this.state.totalScore >= 34000) rank = 'S+';
+                let finalTxt = "";
 
-                const currentHs = localStorage.getItem('pq_highscore') || 0;
-                if(this.state.totalScore > currentHs) {
-                    localStorage.setItem('pq_highscore', this.state.totalScore);
+                if (this.state.mode === 'normal') {
+                    // Management Bonus
+                    const mpBonus = this.state.remainingMP * 200;
+                    this.state.totalScore += mpBonus;
+                    
+                    if(this.state.totalScore >= 10000) rank = 'C';
+                    if(this.state.totalScore >= 19000) rank = 'B';
+                    if(this.state.totalScore >= 25000) rank = 'A';
+                    if(this.state.totalScore >= 30000) rank = 'S';
+                    if(this.state.totalScore >= 34000) rank = 'S+';
+                    
+                    finalTxt = `ランク: ${rank}`;
+                } else {
+                    // Endless Result
+                    finalTxt = `連続正解数: ${this.state.streak} 回`;
                 }
 
-                document.getElementById('final-score').innerText = this.state.totalScore;
-                document.getElementById('rank-display').innerText = `ランク: ${rank}`;
+                // Highscore
+                const key = this.state.mode === 'normal' ? 'pq_highscore' : 'pq_endless_streak';
+                const currentHs = localStorage.getItem(key) || 0;
+                if(this.state.mode === 'normal') {
+                    if(this.state.totalScore > currentHs) localStorage.setItem(key, this.state.totalScore);
+                } else {
+                    if(this.state.streak > currentHs) localStorage.setItem(key, this.state.streak);
+                }
+
+                document.getElementById('final-score').innerText = this.state.mode === 'normal' ? this.state.totalScore : this.state.streak;
+                document.getElementById('rank-display').innerText = finalTxt;
                 document.getElementById('game-area').style.display = 'none';
                 document.getElementById('final-modal').style.display = 'flex';
             },
 
+            changeMP: function(amount) {
+                this.state.remainingMP += amount;
+                this.updateGlobalUI();
+                UI.showMPPopup(amount);
+            },
+
             updateGlobalUI: function() {
                 document.getElementById('mp-display').innerText = this.state.remainingMP;
-                document.getElementById('score-display').innerText = this.state.totalScore;
-                const mpPercent = (this.state.remainingMP / 50) * 100;
+                document.getElementById('score-display').innerText = this.state.mode === 'normal' ? this.state.totalScore : this.state.streak;
+                
+                const maxVis = this.state.mode === 'normal' ? 50 : 100;
+                let mpPercent = (this.state.remainingMP / maxVis) * 100;
+                if(mpPercent > 100) mpPercent = 100;
                 document.getElementById('mp-bar').style.width = `${mpPercent}%`;
             },
 
