@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Partial Quiz - Steam Edition</title>
+    <title>Partial Quiz - Steam Engine</title>
     <style>
         /* --- CSS Variables & Base Styles --- */
         :root {
@@ -14,449 +14,256 @@
             --copper: #b87333;
             --silver: #a0a0a0;
             --glow: #e0d070;
-            --leather: #6b4c35;
+            --highlight: #f1c40f;
             --text-main: #dcdcdc;
+            --font-jp: "MS Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
             --font-display: 'Courier New', Courier, monospace;
+            
+            --kb-gap: 3px;
+            --key-max-width: 38px;
         }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             background-image: 
                 radial-gradient(circle at 50% 50%, #2a2a2a 0%, #111 100%),
                 repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 0, rgba(0,0,0,0.1) 10px, transparent 10px, transparent 20px);
             color: var(--text-main);
-            font-family: var(--font-display);
+            font-family: var(--font-jp);
             overflow-x: hidden;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            touch-action: manipulation;
         }
 
         /* --- Animations --- */
         @keyframes gear-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes steam-pulse { 0% { opacity: 0.3; } 50% { opacity: 0.6; } 100% { opacity: 0.3; } }
-        @keyframes click-press { 0% { transform: scale(1); } 50% { transform: scale(0.95); } 100% { transform: scale(1); } }
-        @keyframes plate-open { 0% { transform: rotateX(0deg); opacity: 1; } 100% { transform: rotateX(90deg); opacity: 0; } }
         @keyframes text-reveal { 0% { opacity: 0; text-shadow: none; } 100% { opacity: 1; text-shadow: 0 0 8px var(--glow); } }
+        @keyframes modal-fade { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pop-in { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes pulse-border { 0% { border-color: var(--brass); } 50% { border-color: var(--highlight); box-shadow: 0 0 10px var(--highlight); } 100% { border-color: var(--brass); } }
 
         /* --- UI Components --- */
         .container {
-            width: 100%;
-            max-width: 800px;
-            padding: 20px;
-            box-sizing: border-box;
-            position: relative;
+            width: 100%; max-width: 800px; padding: 10px; box-sizing: border-box; position: relative;
         }
 
-        /* Panels with metallic look */
+        /* Panels */
         .panel {
             background: linear-gradient(135deg, #3a3a3a, #222);
-            border: 4px solid var(--brass);
-            border-radius: 8px;
-            box-shadow: 
-                inset 0 0 20px rgba(0,0,0,0.8),
-                0 10px 20px rgba(0,0,0,0.5),
-                0 0 0 2px #000;
-            padding: 20px;
-            margin-bottom: 20px;
-            position: relative;
+            border: 4px solid var(--brass); border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5), 0 0 0 2px #000;
+            padding: 15px; margin-bottom: 15px; position: relative;
         }
-        
-        /* Screws */
         .panel::before, .panel::after {
-            content: '';
-            position: absolute;
-            width: 12px;
-            height: 12px;
+            content: ''; position: absolute; width: 10px; height: 10px;
             background: radial-gradient(circle, var(--silver) 20%, #444 80%);
-            border-radius: 50%;
-            box-shadow: 0 2px 2px rgba(0,0,0,0.5);
-            top: 8px;
+            border-radius: 50%; top: 6px; box-shadow: 0 2px 2px rgba(0,0,0,0.5);
         }
-        .panel::before { left: 8px; }
-        .panel::after { right: 8px; }
+        .panel::before { left: 6px; }
+        .panel::after { right: 6px; }
 
         h1, h2, h3 {
-            text-align: center;
-            color: var(--brass);
-            text-shadow: 2px 2px 0 #000;
-            margin-top: 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            text-align: center; color: var(--brass); text-shadow: 2px 2px 0 #000;
+            margin-top: 0; letter-spacing: 2px;
         }
 
-        /* Buttons (Steam valves/switches) */
+        /* Buttons */
         button {
             background: linear-gradient(to bottom, var(--brass), var(--brass-dark));
-            border: 2px solid #4a3b1a;
-            border-radius: 4px;
-            color: #1a0f00;
-            font-family: var(--font-display);
-            font-weight: bold;
-            font-size: 1.1em;
-            padding: 10px 20px;
-            cursor: pointer;
+            border: 2px solid #4a3b1a; border-radius: 4px;
+            color: #1a0f00; font-family: var(--font-jp); font-weight: bold;
+            font-size: 1em; padding: 12px 20px; cursor: pointer;
             box-shadow: 0 4px 0 #4a3b1a, 0 5px 10px rgba(0,0,0,0.5);
             transition: transform 0.1s, box-shadow 0.1s;
-            text-transform: uppercase;
         }
-        button:active {
-            transform: translateY(4px);
-            box-shadow: 0 0 0 #4a3b1a, inset 0 2px 5px rgba(0,0,0,0.5);
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #4a3b1a; }
+        button:disabled { filter: grayscale(100%); opacity: 0.6; cursor: not-allowed; }
+        
+        button.primary {
+            background: linear-gradient(to bottom, #f1c40f, #f39c12);
+            border-color: #d35400; box-shadow: 0 4px 0 #d35400, 0 5px 10px rgba(0,0,0,0.5);
+            font-size: 1.1em;
         }
-        button:disabled {
-            filter: grayscale(100%);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-            background: #555;
-            color: #888;
-        }
+        button.primary:active { box-shadow: 0 0 0 #d35400; }
+
         button.danger {
             background: linear-gradient(to bottom, #d64541, #a12f2b);
-            border-color: #631d1b;
-            box-shadow: 0 4px 0 #631d1b, 0 5px 10px rgba(0,0,0,0.5);
-            color: white;
+            border-color: #631d1b; box-shadow: 0 4px 0 #631d1b, 0 5px 10px rgba(0,0,0,0.5); color: white;
         }
-        button.danger:active {
-            box-shadow: 0 0 0 #631d1b;
-        }
+        button.danger:active { box-shadow: 0 0 0 #631d1b; }
 
-        /* --- Gauges --- */
+        /* Gauges */
         .gauge-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            background: #000;
-            padding: 10px;
-            border: 2px solid var(--silver);
-            border-radius: 30px;
+            display: flex; justify-content: space-between; margin-bottom: 15px;
+            background: #000; padding: 8px; border: 2px solid var(--silver); border-radius: 30px;
             box-shadow: inset 0 0 10px #000;
         }
-        .gauge {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-        }
-        .gauge-label {
-            font-size: 0.8em;
-            color: var(--silver);
-        }
-        .gauge-value {
-            font-size: 1.5em;
-            color: var(--glow);
-            text-shadow: 0 0 5px var(--glow);
-        }
+        .gauge { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .gauge-label { font-size: 0.7em; color: var(--silver); }
+        .gauge-value { font-size: 1.4em; color: var(--glow); text-shadow: 0 0 5px var(--glow); font-family: var(--font-display); }
         .mp-bar-bg {
-            width: 100%;
-            height: 10px;
-            background: #333;
-            border-radius: 5px;
-            margin-top: 5px;
-            overflow: hidden;
-            border: 1px solid #555;
+            width: 100%; height: 8px; background: #333; border-radius: 4px;
+            margin-top: 5px; overflow: hidden; border: 1px solid #555;
         }
         .mp-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #d35400, #f39c12);
-            width: 100%;
-            transition: width 0.5s ease-out;
-            box-shadow: 0 0 5px #f39c12;
+            height: 100%; background: linear-gradient(90deg, #d35400, #f39c12); width: 100%;
+            transition: width 0.5s ease-out; box-shadow: 0 0 5px #f39c12;
         }
 
-        /* --- Game Area --- */
-        #game-area {
-            display: none;
-        }
+        /* Game Area */
+        #game-area { display: none; }
         .info-panel {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            color: var(--silver);
-            border-bottom: 1px dashed var(--silver);
-            padding-bottom: 5px;
+            display: flex; justify-content: space-between; margin-bottom: 10px;
+            font-size: 0.9em; color: var(--silver); border-bottom: 1px dashed var(--silver); padding-bottom: 5px;
+        }
+        .status-msg {
+            text-align: center; color: var(--glow); font-weight: bold; margin-bottom: 10px;
+            animation: text-reveal 0.5s; min-height: 1.2em;
         }
 
-        /* Question Analyzer (Plate display) */
         .analyzer-display {
-            min-height: 150px;
-            background: #111;
-            border: 2px inset #555;
-            padding: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-            position: relative;
+            min-height: 120px; background: #111; border: 2px inset #555; padding: 15px;
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center;
+            margin-bottom: 15px; position: relative; overflow: hidden;
         }
-        /* Background gears for decor */
-        .bg-gear {
-            position: absolute;
-            opacity: 0.1;
-            z-index: 0;
-            pointer-events: none;
-        }
+        .bg-gear { position: absolute; opacity: 0.1; z-index: 0; pointer-events: none; }
         .gear-1 { width: 100px; top: 10px; left: 10px; animation: gear-spin 20s linear infinite; }
         .gear-2 { width: 80px; bottom: 10px; right: 10px; animation: gear-spin 15s linear infinite reverse; }
 
         /* Question Parts */
         .q-part {
-            position: relative;
-            z-index: 1;
-            cursor: pointer;
-            transition: transform 0.2s;
-            user-select: none;
+            position: relative; z-index: 1; cursor: pointer; transition: transform 0.1s; user-select: none;
+            min-height: 45px; height: auto; display: flex;
         }
-        .q-part:hover {
-            transform: scale(1.05);
-        }
-        .plate-cover {
-            background: linear-gradient(to bottom, #5a5a5a, #333);
-            border: 2px solid #888;
-            color: transparent;
-            min-width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 5px rgba(0,0,0,0.5);
-            border-radius: 4px;
-            position: relative;
-        }
-        /* Rivets on plate */
-        .plate-cover::after {
-            content: 'x';
-            color: #222;
-            font-size: 10px;
-            position: absolute;
-            top: 2px; right: 2px;
-        }
-        .plate-cover::before {
-            content: 'x';
-            color: #222;
-            font-size: 10px;
-            position: absolute;
-            bottom: 2px; left: 2px;
-        }
-        .plate-text {
-            display: none;
-            background: rgba(255, 250, 240, 0.9); /* Parchment color */
-            color: #000;
-            padding: 8px 12px;
-            border-radius: 4px;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            font-weight: bold;
-            font-size: 1.2em;
-            animation: text-reveal 0.5s forwards;
-            min-width: 30px;
-            text-align: center;
-        }
-        .q-part.opened .plate-cover {
-            display: none;
-        }
-        .q-part.opened .plate-text {
-            display: block;
-        }
-        .q-part.opened {
-            cursor: default;
-            transform: none !important;
+        .q-part:hover { transform: scale(1.03); }
+        
+        .q-part.selected { transform: scale(1.05); z-index: 2; }
+        .q-part.selected .plate-cover {
+            border-color: var(--highlight);
+            box-shadow: 0 0 8px var(--highlight);
         }
 
-        /* --- Action Area --- */
+        .plate-cover {
+            background: linear-gradient(to bottom, #5a5a5a, #333); border: 2px solid #888;
+            width: 100%; min-height: 45px; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 3px 4px rgba(0,0,0,0.5); border-radius: 4px; position: relative;
+            box-sizing: border-box; color: #aaa; font-size: 0.8em; font-family: var(--font-display);
+        }
+        .plate-cover::after { content: ''; position: absolute; width:4px; height:4px; background:#111; border-radius:50%; top:2px; right:2px; }
+        .plate-cover::before { content: ''; position: absolute; width:4px; height:4px; background:#111; border-radius:50%; bottom:2px; left:2px; }
+        
+        .plate-text {
+            display: none; background: rgba(255, 250, 240, 0.9); color: #000;
+            width: 100%; min-height: 45px; align-items: center; justify-content: center;
+            border-radius: 4px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            font-weight: bold; font-size: 1.1em; animation: text-reveal 0.5s forwards;
+            text-align: center; box-sizing: border-box;
+            white-space: normal; word-break: break-all; padding: 5px; line-height: 1.2;
+        }
+        .q-part.opened .plate-cover { display: none; }
+        .q-part.opened .plate-text { display: flex; }
+        .q-part.opened { cursor: default; transform: none !important; }
+
+        /* Action Area */
         .action-area {
-            background: #222;
-            padding: 15px;
-            border-top: 2px solid var(--brass);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-        input[type="text"] {
-            flex: 1;
-            background: #000;
-            border: 2px solid var(--copper);
-            color: var(--glow);
-            font-family: var(--font-display);
-            font-size: 1.2em;
-            padding: 10px;
-            outline: none;
-            box-shadow: inset 0 0 5px #000;
-        }
-        input[type="text"]:focus {
-            border-color: var(--glow);
+            background: #222; padding: 10px; border-top: 2px solid var(--brass);
+            display: flex; flex-direction: column; gap: 10px;
         }
         
-        .sub-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .answer-slots-container {
+            display: flex; justify-content: center; gap: 4px; padding: 5px 0; flex-wrap: wrap;
         }
-        
-        .attempts-display {
-            display: flex;
-            gap: 5px;
+        .slot {
+            width: 36px; height: 42px;
+            background: #000; border: 2px solid var(--copper);
+            color: var(--glow); font-size: 1.3em; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 4px; box-shadow: inset 0 0 5px #000;
+            transition: all 0.2s;
         }
+        .slot.filled { border-color: var(--glow); text-shadow: 0 0 5px var(--glow); animation: pop-in 0.2s; }
+        .slot.current { border-color: #fff; box-shadow: 0 0 5px #fff; }
+
+        .main-actions {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 5px;
+        }
+
+        .sub-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px dotted #444; padding-top:10px;}
+        .attempts-display { display: flex; gap: 5px; }
         .bulb {
-            width: 20px;
-            height: 20px;
-            background: #333;
-            border: 1px solid #555;
-            border-radius: 50%;
-            box-shadow: inset 0 0 5px #000;
+            width: 15px; height: 15px; background: #333; border: 1px solid #555; border-radius: 50%; box-shadow: inset 0 0 5px #000;
         }
-        .bulb.lit {
-            background: #00ff00;
-            box-shadow: 0 0 10px #00ff00, inset 0 0 2px #fff;
-            border-color: #fff;
+        .bulb.lit { background: #00ff00; box-shadow: 0 0 8px #00ff00, inset 0 0 2px #fff; border-color: #fff; }
+        .bulb.broken { background: #330000; border-color: #500; }
+
+        /* --- Software Keyboard --- */
+        #soft-keyboard {
+            background: #1a1a1a; border: 2px solid #555; padding: 4px; margin-top: 5px; border-radius: 5px;
+            display: flex; flex-direction: column; gap: var(--kb-gap); user-select: none; align-items: center;
         }
-        .bulb.broken {
-            background: #330000;
-            border-color: #500;
+        .kb-row { display: flex; justify-content: center; gap: var(--kb-gap); width: 100%; }
+        .kb-key {
+            background: linear-gradient(to bottom, #ddd, #aaa);
+            border: 1px solid #888; border-radius: 3px;
+            color: #111; font-weight: bold; font-size: 13px;
+            width: calc((100% - (12 * var(--kb-gap))) / 13);
+            max-width: var(--key-max-width); height: 35px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 2px 0 #555; transition: all 0.05s;
         }
+        .kb-key:active { transform: translateY(2px); box-shadow: 0 0 0 #555; }
+        .kb-key.func {
+            background: linear-gradient(to bottom, var(--brass), var(--brass-dark));
+            color: #1a0f00; border-color: #4a3b1a; box-shadow: 0 2px 0 #4a3b1a; font-size: 11px;
+        }
+        .kb-key.func:active { box-shadow: 0 0 0 #4a3b1a; }
+        .kb-key.num { background: linear-gradient(to bottom, #444, #222); color: #ccc; border-color: #000; box-shadow: 0 2px 0 #000; }
 
         /* --- Modals --- */
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            backdrop-filter: blur(2px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center;
+            z-index: 100; backdrop-filter: blur(2px);
         }
         .modal {
-            background: #2a2a2a;
-            border: 4px double var(--brass);
-            padding: 30px;
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            position: relative;
+            background: #2a2a2a; border: 4px double var(--brass); padding: 25px;
+            width: 90%; max-width: 600px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            max-height: 80vh; overflow-y: auto; animation: modal-fade 0.3s forwards;
         }
-        .modal h2 {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--brass-dark);
-            padding-bottom: 10px;
-        }
-        
-        /* Range Slider for MP Bet */
-        input[type=range] {
-            -webkit-appearance: none;
-            width: 100%;
-            background: transparent;
-            margin: 20px 0;
-        }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 30px;
-            width: 30px;
-            border-radius: 50%;
-            background: radial-gradient(#dcdcdc, #808080);
-            border: 2px solid var(--brass);
-            cursor: pointer;
-            margin-top: -12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #111;
-            border: 1px solid #555;
-            border-radius: 3px;
-        }
-        .bet-value {
-            font-size: 3em;
-            color: var(--glow);
-            font-weight: bold;
-            margin: 10px 0;
-            text-shadow: 0 0 10px var(--brass);
-        }
+        .modal h2 { border-bottom: 1px solid var(--brass-dark); padding-bottom: 10px; margin-bottom: 20px; }
+        .manual-text { text-align: left; font-size: 0.9em; line-height: 1.6; color: #ccc; }
+        .manual-text h3 { color: var(--glow); text-align: left; font-size: 1.1em; margin-top: 15px; border-bottom: 1px dashed #555; }
+        .manual-text b { color: var(--brass); }
 
-        /* Start Screen */
-        #start-screen {
-            text-align: center;
-        }
+        /* Start & Result */
         .logo-box {
-            border: 8px solid var(--brass);
-            padding: 40px;
-            margin-bottom: 30px;
-            background: #222;
-            display: inline-block;
-            box-shadow: 
-                0 0 20px rgba(0,0,0,0.8),
-                inset 0 0 20px rgba(0,0,0,0.8);
+            border: 8px solid var(--brass); padding: 30px; margin-bottom: 30px; background: #222;
+            display: inline-block; box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.8);
         }
         .title-main {
-            font-size: 3em;
-            margin: 0;
-            line-height: 1;
-            color: var(--brass);
+            font-size: 2.5em; margin: 0; line-height: 1; color: var(--brass);
             text-shadow: 2px 2px 0 #000, 0 0 15px var(--brass-dark);
         }
-        .title-sub {
-            font-size: 1.2em;
-            color: var(--silver);
-            margin-top: 10px;
-            letter-spacing: 5px;
-        }
-        .high-score {
-            margin-top: 20px;
-            color: var(--copper);
-        }
-
-        /* Result Screen */
         .result-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            border-bottom: 1px dotted #555;
-            padding-bottom: 5px;
+            display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px dotted #555; padding-bottom: 2px;
         }
-        .total-score {
-            font-size: 2.5em;
-            color: var(--glow);
-            margin: 20px 0;
-            text-shadow: 0 0 10px rgba(255,215,0,0.3);
-        }
-
-        /* Feedback Message */
+        .total-score { font-size: 2.2em; color: var(--glow); margin: 15px 0; }
+        
+        /* Feedback */
         #feedback-msg {
-            position: fixed;
-            top: 20%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            border: 2px solid var(--brass);
-            padding: 20px 40px;
-            font-size: 2em;
-            color: #fff;
-            z-index: 200;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            text-shadow: 0 0 5px #fff;
+            position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9); border: 2px solid var(--brass); padding: 15px 30px;
+            font-size: 1.8em; color: #fff; z-index: 200; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+            text-align: center; white-space: pre-line;
         }
-        #feedback-msg.show {
-            opacity: 1;
-        }
+        #feedback-msg.show { opacity: 1; }
         #feedback-msg.correct { color: #00ff00; border-color: #00ff00; }
         #feedback-msg.wrong { color: #ff0000; border-color: #ff0000; }
-
+        #feedback-msg.warn { color: #f39c12; border-color: #f39c12; font-size: 1.2em; }
     </style>
 </head>
 <body>
@@ -478,45 +285,77 @@
     </svg>
 
     <div id="start-screen" class="container">
-        <div class="logo-box">
-            <h1 class="title-main">Partial<br>Quiz</h1>
-            <div class="title-sub">- Steam Engine -</div>
+        <div style="text-align: center; margin-top: 50px;">
+            <div class="logo-box">
+                <h1 class="title-main">Partial<br>Quiz</h1>
+                <div style="color:var(--silver); margin-top:10px;">- 蒸気式解析機 -</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
+                <button onclick="Game.init()" style="font-size: 1.5em; padding: 15px 40px; width:250px;">ゲーム開始</button>
+                <button class="secondary" onclick="UI.showManual()" style="width:250px;">マニュアル確認</button>
+            </div>
+            <div style="margin-top: 30px; color: var(--copper);">最高記録: <span id="hs-display">0</span></div>
         </div>
-        <div>
-            <button onclick="Game.init()" style="font-size: 1.5em; padding: 15px 40px;">Game Start</button>
+    </div>
+
+    <div id="manual-modal" class="modal-overlay">
+        <div class="modal">
+            <h2>⚙️ 解析マニュアル ⚙️</h2>
+            <div class="manual-text">
+                <h3>🛰 ゲームの流れ</h3>
+                <p>1. <b>エネルギー注入</b>: 最初に文章の分割数を決定します。</p>
+                <p>2. <b>ターゲット選択</b>: 伏せられたパネルの中から、開けたいものを選んでください（複数選択可）。</p>
+                <p>3. <b>一括オープン</b>: 「決定」ボタンで一気に情報を取得します。</p>
+                <p>4. <b>解答入力</b>: 得られたヒントから答えを推測し、入力します。</p>
+
+                <h3>⚖️ アクションとリスク</h3>
+                <p><b>【正解】</b> ステージクリア。次のレベルへ。<br>
+                <b>【不正解】</b> 解答権を1つ失い、<b>「ターゲット選択」フェーズに戻ります。</b><br>
+                <b>【追加調査 (PASS)】</b> わからない場合、解答せずに追加でパネルを開けるフェーズに戻れます。</p>
+
+                <h3>📈 スコア計算</h3>
+                <p>未開封のパネルが多いほど高得点です。一度にたくさん開けすぎないのがコツです。<br>
+                <b>精度報酬</b>: (未開封枚数) × 750 pt</p>
+            </div>
+            <br>
+            <button onclick="UI.closeManual()">閉じる</button>
         </div>
-        <div class="high-score">High Score: <span id="hs-display">0</span></div>
     </div>
 
     <div id="game-area" class="container">
         <div class="gauge-container">
             <div class="gauge">
-                <span class="gauge-label">PRESSURE (MP)</span>
+                <span class="gauge-label">蒸気圧 (MP)</span>
                 <span class="gauge-value" id="mp-display">50</span>
                 <div class="mp-bar-bg"><div id="mp-bar" class="mp-bar-fill" style="width: 100%;"></div></div>
             </div>
             <div class="gauge">
-                <span class="gauge-label">SCORE</span>
+                <span class="gauge-label">獲得スコア</span>
                 <span class="gauge-value" id="score-display">0</span>
             </div>
         </div>
 
         <div class="panel">
             <div class="info-panel">
-                <span id="stage-display">STAGE 1 / 5</span>
-                <span id="char-count-display">Length: --</span>
+                <span id="stage-display">第 1 階層</span>
+                <span id="char-count-display">解析文字数: --</span>
             </div>
+            
+            <div class="status-msg" id="status-message">ターゲットを選択してください</div>
 
             <div class="analyzer-display" id="question-board">
                 <svg class="bg-gear gear-1"><use href="#gear-icon"/></svg>
                 <svg class="bg-gear gear-2"><use href="#gear-icon"/></svg>
-            </div>
+                </div>
 
             <div class="action-area">
-                <div class="input-group">
-                    <input type="text" id="answer-input" placeholder="Enter Answer..." autocomplete="off">
-                    <button onclick="Game.submitAnswer()">SEND</button>
-                </div>
+                <div class="answer-slots-container" id="answer-slots"></div>
+                
+                <div class="main-actions" id="main-actions-container">
+                    </div>
+
+                <div id="soft-keyboard"></div>
+
                 <div class="sub-actions">
                     <div class="attempts-display" id="attempts-container">
                         <div class="bulb lit"></div>
@@ -524,8 +363,7 @@
                         <div class="bulb lit"></div>
                     </div>
                     <div>
-                        <button onclick="Game.pass()" style="font-size: 0.8em; margin-right: 5px;">PASS</button>
-                        <button class="danger" onclick="Game.giveUp()" style="font-size: 0.8em;">GIVE UP</button>
+                        <button class="danger" onclick="Game.giveUp()" style="font-size: 0.8em;">諦める</button>
                     </div>
                 </div>
             </div>
@@ -534,75 +372,195 @@
 
     <div id="bet-modal" class="modal-overlay">
         <div class="modal">
-            <h2>INJECT ENERGY</h2>
-            <p>Determine split resource (MP) for analysis.</p>
-            <p style="font-size: 0.8em; color: #888;">More MP = More Parts (Easier to read)<br>Less MP = Higher Bonus</p>
-            <div class="bet-value" id="bet-val-display">1</div>
+            <h2>エネルギー注入</h2>
+            <div style="background:#111; padding:10px; border:1px solid #555; margin-bottom:15px; border-radius:4px;">
+                <span style="color:var(--silver); font-size:0.9em;">対象データ（Lv.<span id="bet-level-display">1</span>）</span><br>
+                <span id="bet-modal-q-len" style="font-size:1.5em; color:var(--glow);">10</span> 文字
+            </div>
+            <p style="font-size: 0.9em;">分割リソース(MP)を指定してください。</p>
+            <div class="bet-value" style="font-size:2.5em; color:var(--glow); font-weight:bold;">
+                <span id="bet-val-display">1</span>
+            </div>
             <input type="range" id="bet-slider" min="1" max="50" value="1" oninput="Game.updateBetDisplay()">
-            <button onclick="Game.confirmBet()">ACTIVATE ENGINE</button>
+            <button onclick="Game.confirmBet()">機関始動</button>
         </div>
     </div>
 
     <div id="result-modal" class="modal-overlay">
         <div class="modal">
-            <h2 id="result-title">STAGE CLEARED</h2>
-            <div id="result-details">
-                </div>
+            <h2 id="result-title">ステージクリア</h2>
+            <div id="result-details"></div>
             <br>
-            <button onclick="Game.nextLevel()">NEXT STAGE</button>
+            <button onclick="Game.nextLevel()">次の階層へ</button>
         </div>
     </div>
 
     <div id="final-modal" class="modal-overlay">
         <div class="modal">
-            <h2>MISSION COMPLETE</h2>
+            <h2>全階層踏破</h2>
             <div class="total-score" id="final-score">0</div>
-            <p id="rank-display">Rank: F</p>
-            <button onclick="location.reload()">RESTART SYSTEM</button>
+            <p id="rank-display">ランク: F</p>
+            <button onclick="location.reload()">システム再起動</button>
         </div>
     </div>
 
-    <div id="feedback-msg">CORRECT!</div>
+    <div id="feedback-msg">正解!!</div>
 
     <script>
         // --- Data ---
-        // 埋め込みデータ (Generated from CSV)
-        const questionsData = [{"id": 1, "text": "令和元年は西暦何年？", "answer": "2019", "answerLen": 4}, {"id": 2, "text": "1ダースは何個のこと？", "answer": "12", "answerLen": 2}, {"id": 3, "text": "1週間は何日間のこと？", "answer": "7", "answerLen": 1}, {"id": 4, "text": "五角形を英語で何という？", "answer": "ぺんたごん", "answerLen": 5}, {"id": 5, "text": "囲碁で使う石の色は白と何？", "answer": "くろ", "answerLen": 2}, {"id": 6, "text": "「百足」この漢字は何と読む？", "answer": "むかで", "answerLen": 3}, {"id": 7, "text": "旧暦で12月のことを何という？", "answer": "しわす", "answerLen": 3}, {"id": 8, "text": "日本で一番面積が広い都道府県は？", "answer": "ほっかいどう", "answerLen": 6}, {"id": 9, "text": "信号機で「止まれ」を意味する色は？", "answer": "あか", "answerLen": 2}, {"id": 10, "text": "地球の周りを回っている唯一の衛星は？", "answer": "つき", "answerLen": 2}, {"id": 11, "text": "なぞなぞです。冷蔵庫の中にいる動物は？", "answer": "ぞう", "answerLen": 2}, {"id": 12, "text": "設定した時間になるとベルなどが鳴動する時計は？", "answer": "めざましどけい", "answerLen": 7}, {"id": 13, "text": "演技が平坦に見える人を、野菜に例えて何という？", "answer": "だいこんやくしゃ", "answerLen": 8}, {"id": 14, "text": "なぞなぞです。「8,999999…」これ何の動物？", "answer": "くじゃく", "answerLen": 4}, {"id": 15, "text": "世界で一番高い山「エベレスト」がある山脈の名前は何？", "answer": "ひまらや", "answerLen": 4}, {"id": 16, "text": "将棋の駒で、唯一「成る」ことができない一番弱い駒は何？", "answer": "ふひょう", "answerLen": 4}, {"id": 17, "text": "主にテニスや野球などのスポーツ時、手首に着ける装飾品は？", "answer": "りすとばんど", "answerLen": 6}, {"id": 18, "text": "音楽の父と呼ばれ、「G線上のアリア」等を作曲した人物は？", "answer": "ばっは", "answerLen": 3}, {"id": 19, "text": "童話『ピノキオ』で、嘘をつくと伸びてしまう体の一部はどこ？", "answer": "はな", "answerLen": 2}, {"id": 20, "text": "毎年1月1日に届く、新年の挨拶が書かれたハガキを何という？", "answer": "ねんがじょう", "answerLen": 6}, {"id": 21, "text": "年が明けてから初めて神社や寺院などに参拝する行事を何という？", "answer": "はつもうで", "answerLen": 5}, {"id": 22, "text": "首が非常に長く、高い場所の葉を食べる、アフリカに住む動物は？", "answer": "きりん", "answerLen": 3}, {"id": 23, "text": "鉛筆の芯の主な原料で、ダイヤモンドと同じ炭素からなる物質は？", "answer": "こくえん", "answerLen": 4}, {"id": 24, "text": "1789年に起こり、ルイ16世が処刑された市民革命を何という？", "answer": "ふらんすかくめい", "answerLen": 8}, {"id": 25, "text": "七転八倒、二束三文、岡目八目。出てきた漢数字を全て足すといくつ？", "answer": "28", "answerLen": 2}, {"id": 26, "text": "オリンピックの五輪のマーク。青、黄、黒、緑、あともう一色は何色？", "answer": "あか", "answerLen": 2}, {"id": 27, "text": "赤い帽子にヒゲが特徴の、任天堂の人気アクションゲームの主人公は？", "answer": "まりお", "answerLen": 3}, {"id": 28, "text": "おじいさんが川から流れてきた大きな桃を拾うところから始まる物語は？", "answer": "ももたろう", "answerLen": 5}, {"id": 29, "text": "金属板を靴底の爪先や踵につけて、床を踏み鳴らしながら踊るスタイルは？", "answer": "たっぷだんす", "answerLen": 6}, {"id": 30, "text": "光が1年間に進む距離を1とする、天文学で使われる距離の単位を何という？", "answer": "こうねん", "answerLen": 4}, {"id": 31, "text": "7月7日の夜に、織姫と彦星が天の川を渡って会うという中国伝来の行事は？", "answer": "たなばた", "answerLen": 4}, {"id": 32, "text": "毎年大晦日の夜にNHKで放送される、伝統的な男女対抗の歌番組といえば何？", "answer": "こうはくうたがっせん", "answerLen": 10}, {"id": 33, "text": "機械仕掛けによって自動的に楽曲を演奏する、オランダ語由来の名がついた楽器は？", "answer": "おるごーる", "answerLen": 5}, {"id": 34, "text": "東北地方の方言で「牛」を意味する言葉が含まれている、福島県の郷土玩具とは何？", "answer": "あかべこ", "answerLen": 4}, {"id": 35, "text": "神社などにおいて内と外を分ける境に立てられ、主に赤く塗られた門の一種の名称は？", "answer": "とりい", "answerLen": 3}, {"id": 36, "text": "バスケットボールにおいて、ボールを直接リングに落とすように入れる方法を何という？", "answer": "だんくしゅーと", "answerLen": 7}, {"id": 37, "text": "47都道府県を五十音順に並べたとき、最初に来るのは愛知県ですが、最後に来るのは？", "answer": "わかやまけん", "answerLen": 6}, {"id": 38, "text": "江戸時代末期、黒船を率いて浦賀に来航し、日本に開国を迫ったアメリカの軍提督は誰？", "answer": "ぺりー", "answerLen": 3}, {"id": 39, "text": "スタジオジブリの映画で、森に住む大きな不思議な生き物と姉妹の交流を描いた作品は？", "answer": "となりのととろ", "answerLen": 7}, {"id": 40, "text": "小型マグロやカツオ類などを対象に、釣り竿を使って魚を一匹釣り上げる漁法を何という？", "answer": "いっぽんづり", "answerLen": 6}, {"id": 41, "text": "南アメリカ大陸を流れる世界最大級の河川で、流域に広大な熱帯雨林を持つ川の名前は何？", "answer": "あまぞん", "answerLen": 4}, {"id": 42, "text": "漫画『ONE PIECE』の主人公、モンキー・D・ルフィが食べた悪魔の実の名前は何？", "answer": "ごむごむのみ", "answerLen": 6}, {"id": 43, "text": "太宰治の小説で、処刑される親友のために走り続けるメロスの姿を描いた作品のタイトルは何？", "answer": "はしれめろす", "answerLen": 6}, {"id": 44, "text": "春になると多くの人を悩ませるイメージのある、スギなどの花粉が原因で起こるアレルギーは？", "answer": "かふんしょう", "answerLen": 6}, {"id": 45, "text": "空気中に約78%含まれており、食品の酸化を防ぐための封入ガスとしても利用される気体は何？", "answer": "ちっそ", "answerLen": 3}, {"id": 46, "text": "住民票を有する全ての国民に1人1つの番号を割り当て、主に行政の効率化を高める制度の名称は？", "answer": "まいなんばー", "answerLen": 6}, {"id": 47, "text": "手応えがないことを表すことわざで、のれんに続くのは腕押しですが、ぬかに続くのは何でしょう？", "answer": "くぎ", "answerLen": 2}, {"id": 48, "text": "漫画『ドラえもん』の主人公・ドラえもんの好物はどら焼きですが、妹のドラミちゃんの好物は何？", "answer": "めろんぱん", "answerLen": 5}, {"id": 49, "text": "幕末の土佐藩出身の志士で、薩摩藩と長州藩の間を取り持ち「薩長同盟」を成立させた日本の歴史的英雄は誰？", "answer": "さかもとりょうま", "answerLen": 8}, {"id": 50, "text": "マダム・タッソーの展示品や歌手・デーモン閣下のフレーズでも知られる、蝋でつくられた彫刻のことを何という？", "answer": "ろうにんぎょう", "answerLen": 7}, {"id": 51, "text": "ピラミッドの横にあることでも知られる、ライオンの身体と人間の顔を持った神聖な存在として神話に登場する生物は？", "answer": "すふぃんくす", "answerLen": 6}, {"id": 52, "text": "19世紀のイギリスの博物学者で、ガラパゴス諸島での観察をもとに『種の起源』を著し、進化論を提唱した人物は誰？", "answer": "だーうぃん", "answerLen": 5}, {"id": 53, "text": "雨上がりの晴れた日によく見られ、日本では「幸運の象徴」とも言われるこの赤から紫までの7色の光の帯のことを何という？", "answer": "にじ", "answerLen": 2}, {"id": 54, "text": "1666年、リンゴが木から落ちるのを見て「万有引力」の法則を思いついたというエピソードで知られる、イギリスの物理学者は誰？", "answer": "にゅーとん", "answerLen": 5}, {"id": 55, "text": "スペインのバルセロナにあり、1882年の着工から140年以上経った今も建設が続いている、ガウディ設計の巨大な教会を何という？", "answer": "さぐらだふぁみりあ", "answerLen": 9}, {"id": 56, "text": "1905年にアインシュタインが発表した、時間と空間の歪みを説明し、現代物理学の基礎となった「E=mc²」の式で有名な理論は何？", "answer": "そうたいせいりろん", "answerLen": 9}, {"id": 57, "text": "19世紀のロンドンを舞台に、名探偵シャーロック・ホームズが相棒のワトソンと共に難事件を解決するシリーズを書いたイギリスの作家は？", "answer": "こなんどいる", "answerLen": 6}, {"id": 58, "text": "いじめられていた亀を助けたお礼に、竜宮城へ連れて行かれ、最後に玉手箱を開けておじいさんになってしまう、日本の有名な昔話の主人公は誰？", "answer": "うらしまたろう", "answerLen": 7}, {"id": 59, "text": "24時間営業で、お弁当や飲み物の販売だけでなく、公共料金の支払いや宅配便の受け取りもできる、街中でよく見かける便利なお店の総称は何？", "answer": "こんびにえんすすとあ", "answerLen": 10}, {"id": 60, "text": "「腕を前から上にあげて、大きく背をそらす運動から」のように、ピアノの伴奏に合わせて体を動かす、日本の朝の風景としておなじみの体操は何？", "answer": "らじおたいそう", "answerLen": 7}, {"id": 61, "text": "今では陸上競技などでひとりの選手が一気にたくさんの相手を追い抜く際に用いられることもある、土から引っ張り抜く様子になぞらえた、野菜の名称が入った言葉は？", "answer": "ごぼうぬき", "answerLen": 5}, {"id": 62, "text": "「祇園精舎の鐘の声、諸行無常の響きあり。娑羅双樹の花の色、盛者必衰の理をあらわす。」という有名な一節で始まり、平家一門の栄華と没落を琵琶法師の語りによって伝えた、鎌倉時代に成立した軍記物語は何？", "answer": "へいけものがたり", "answerLen": 8}, {"id": 63, "text": "1972年のユネスコ総会で採択された条約に基づき、人類共通の財産として未来に引き継ぐべき価値があると認められた遺跡や自然環境のことで、日本では法隆寺や姫路城、知床、屋久島などが登録されているものを総称して何という？", "answer": "せかいいさん", "answerLen": 6}, {"id": 64, "text": "「誰もが自由に編集できるフリー百科事典」を掲げる多言語プロジェクトで、その名称はハワイ語で「速い」を意味する言葉と「エンサイクロペディア」を掛け合わせた造語であり、2001年にジミー・ウェールズらによって開始されたWebサイトは何？", "answer": "うぃきぺでぃあ", "answerLen": 7}];
+        const questionsData = [{"id": 1, "text": "令和元年は西暦何年？", "answer": "2019", "answerLen": 4, "level": 1}, {"id": 2, "text": "1ダースは何個のこと？", "answer": "12", "answerLen": 2, "level": 1}, {"id": 3, "text": "1週間は何日間のこと？", "answer": "7", "answerLen": 1, "level": 1}, {"id": 4, "text": "五角形を英語で何という？", "answer": "ぺんたごん", "answerLen": 5, "level": 1}, {"id": 5, "text": "囲碁で使う石の色は白と何？", "answer": "くろ", "answerLen": 2, "level": 1}, {"id": 6, "text": "「百足」この漢字は何と読む？", "answer": "むかで", "answerLen": 3, "level": 1}, {"id": 7, "text": "旧暦で12月のことを何という？", "answer": "しわす", "answerLen": 3, "level": 1}, {"id": 8, "text": "日本で一番面積が広い都道府県は？", "answer": "ほっかいどう", "answerLen": 6, "level": 1}, {"id": 9, "text": "信号機で「止まれ」を意味する色は？", "answer": "あか", "answerLen": 2, "level": 1}, {"id": 10, "text": "地球の周りを回っている唯一の衛星は？", "answer": "つき", "answerLen": 2, "level": 1}, {"id": 11, "text": "なぞなぞです。冷蔵庫の中にいる動物は？", "answer": "ぞう", "answerLen": 2, "level": 1}, {"id": 12, "text": "設定した時間になるとベルなどが鳴動する時計は？", "answer": "めざましどけい", "answerLen": 7, "level": 2}, {"id": 13, "text": "演技が平坦に見える人を、野菜に例えて何という？", "answer": "だいこんやくしゃ", "answerLen": 8, "level": 2}, {"id": 14, "text": "なぞなぞです。「8,999999…」これ何の動物？", "answer": "くじゃく", "answerLen": 4, "level": 2}, {"id": 15, "text": "世界で一番高い山「エベレスト」がある山脈の名前は何？", "answer": "ひまらや", "answerLen": 4, "level": 2}, {"id": 16, "text": "将棋の駒で、唯一「成る」ことができない一番弱い駒は何？", "answer": "ふひょう", "answerLen": 4, "level": 2}, {"id": 17, "text": "主にテニスや野球などのスポーツ時、手首に着ける装飾品は？", "answer": "りすとばんど", "answerLen": 6, "level": 2}, {"id": 18, "text": "音楽の父と呼ばれ、「G線上のアリア」等を作曲した人物は？", "answer": "ばっは", "answerLen": 3, "level": 2}, {"id": 19, "text": "童話『ピノキオ』で、嘘をつくと伸びてしまう体の一部はどこ？", "answer": "はな", "answerLen": 2, "level": 2}, {"id": 20, "text": "毎年1月1日に届く、新年の挨拶が書かれたハガキを何という？", "answer": "ねんがじょう", "answerLen": 6, "level": 2}, {"id": 21, "text": "年が明けてから初めて神社や寺院などに参拝する行事を何という？", "answer": "はつもうで", "answerLen": 5, "level": 2}, {"id": 22, "text": "首が非常に長く、高い場所の葉を食べる、アフリカに住む動物は？", "answer": "きりん", "answerLen": 3, "level": 2}, {"id": 23, "text": "鉛筆の芯の主な原料で、ダイヤモンドと同じ炭素からなる物質は？", "answer": "こくえん", "answerLen": 4, "level": 2}, {"id": 24, "text": "1789年に起こり、ルイ16世が処刑された市民革命を何という？", "answer": "ふらんすかくめい", "answerLen": 8, "level": 2}, {"id": 25, "text": "七転八倒、二束三文、岡目八目。出てきた漢数字を全て足すといくつ？", "answer": "28", "answerLen": 2, "level": 2}, {"id": 26, "text": "オリンピックの五輪のマーク。青、黄、黒、緑、あともう一色は何色？", "answer": "あか", "answerLen": 2, "level": 2}, {"id": 27, "text": "赤い帽子にヒゲが特徴の、任天堂の人気アクションゲームの主人公は？", "answer": "まりお", "answerLen": 3, "level": 2}, {"id": 28, "text": "おじいさんが川から流れてきた大きな桃を拾うところから始まる物語は？", "answer": "ももたろう", "answerLen": 5, "level": 2}, {"id": 29, "text": "金属板を靴底の爪先や踵につけて、床を踏み鳴らしながら踊るスタイルは？", "answer": "たっぷだんす", "answerLen": 6, "level": 2}, {"id": 30, "text": "光が1年間に進む距離を1とする、天文学で使われる距離の単位を何という？", "answer": "こうねん", "answerLen": 4, "level": 2}, {"id": 31, "text": "7月7日の夜に、織姫と彦星が天の川を渡って会うという中国伝来の行事は？", "answer": "たなばた", "answerLen": 4, "level": 2}, {"id": 32, "text": "毎年大晦日の夜にNHKで放送される、伝統的な男女対抗の歌番組といえば何？", "answer": "こうはくうたがっせん", "answerLen": 10, "level": 2}, {"id": 33, "text": "機械仕掛けによって自動的に楽曲を演奏する、オランダ語由来の名がついた楽器は？", "answer": "おるごーる", "answerLen": 5, "level": 2}, {"id": 34, "text": "東北地方の方言で「牛」を意味する言葉が含まれている、福島県の郷土玩具とは何？", "answer": "あかべこ", "answerLen": 4, "level": 2}, {"id": 35, "text": "神社などにおいて内と外を分ける境に立てられ、主に赤く塗られた門の一種の名称は？", "answer": "とりい", "answerLen": 3, "level": 2}, {"id": 36, "text": "バスケットボールにおいて、ボールを直接リングに落とすように入れる方法を何という？", "answer": "だんくしゅーと", "answerLen": 7, "level": 2}, {"id": 37, "text": "47都道府県を五十音順に並べたとき、最初に来るのは愛知県ですが、最後に来るのは？", "answer": "わかやまけん", "answerLen": 6, "level": 2}, {"id": 38, "text": "江戸時代末期、黒船を率いて浦賀に来航し、日本に開国を迫ったアメリカの軍提督は誰？", "answer": "ぺりー", "answerLen": 3, "level": 2}, {"id": 39, "text": "スタジオジブリの映画で、森に住む大きな不思議な生き物と姉妹の交流を描いた作品は？", "answer": "となりのととろ", "answerLen": 7, "level": 2}, {"id": 40, "text": "小型マグロやカツオ類などを対象に、釣り竿を使って魚を一匹釣り上げる漁法を何という？", "answer": "いっぽんづり", "answerLen": 6, "level": 3}, {"id": 41, "text": "南アメリカ大陸を流れる世界最大級の河川で、流域に広大な熱帯雨林を持つ川の名前は何？", "answer": "あまぞん", "answerLen": 4, "level": 3}, {"id": 42, "text": "漫画『ONE PIECE』の主人公、モンキー・D・ルフィが食べた悪魔の実の名前は何？", "answer": "ごむごむのみ", "answerLen": 6, "level": 3}, {"id": 43, "text": "太宰治の小説で、処刑される親友のために走り続けるメロスの姿を描いた作品のタイトルは何？", "answer": "はしれめろす", "answerLen": 6, "level": 3}, {"id": 44, "text": "春になると多くの人を悩ませるイメージのある、スギなどの花粉が原因で起こるアレルギーは？", "answer": "かふんしょう", "answerLen": 6, "level": 3}, {"id": 45, "text": "空気中に約78%含まれており、食品の酸化を防ぐための封入ガスとしても利用される気体は何？", "answer": "ちっそ", "answerLen": 3, "level": 3}, {"id": 46, "text": "住民票を有する全ての国民に1人1つの番号を割り当て、主に行政の効率化を高める制度の名称は？", "answer": "まいなんばー", "answerLen": 6, "level": 3}, {"id": 47, "text": "手応えがないことを表すことわざで、のれんに続くのは腕押しですが、ぬかに続くのは何でしょう？", "answer": "くぎ", "answerLen": 2, "level": 3}, {"id": 48, "text": "漫画『ドラえもん』の主人公・ドラえもんの好物はどら焼きですが、妹のドラミちゃんの好物は何？", "answer": "めろんぱん", "answerLen": 5, "level": 3}, {"id": 49, "text": "幕末の土佐藩出身の志士で、薩摩藩と長州藩の間を取り持ち「薩長同盟」を成立させた日本の歴史的英雄は誰？", "answer": "さかもとりょうま", "answerLen": 8, "level": 3}, {"id": 50, "text": "マダム・タッソーの展示品や歌手・デーモン閣下のフレーズでも知られる、蝋でつくられた彫刻のことを何という？", "answer": "ろうにんぎょう", "answerLen": 7, "level": 3}, {"id": 51, "text": "ピラミッドの横にあることでも知られる、ライオンの身体と人間の顔を持った神聖な存在として神話に登場する生物は？", "answer": "すふぃんくす", "answerLen": 6, "level": 3}, {"id": 52, "text": "19世紀のイギリスの博物学者で、ガラパゴス諸島での観察をもとに『種の起源』を著し、進化論を提唱した人物は誰？", "answer": "だーうぃん", "answerLen": 5, "level": 3}, {"id": 53, "text": "雨上がりの晴れた日によく見られ、日本では「幸運の象徴」とも言われるこの赤から紫までの7色の光の帯のことを何という？", "answer": "にじ", "answerLen": 2, "level": 3}, {"id": 54, "text": "1666年、リンゴが木から落ちるのを見て「万有引力」の法則を思いついたというエピソードで知られる、イギリスの物理学者は誰？", "answer": "にゅーとん", "answerLen": 5, "level": 4}, {"id": 55, "text": "スペインのバルセロナにあり、1882年の着工から140年以上経った今も建設が続いている、ガウディ設計の巨大な教会を何という？", "answer": "さぐらだふぁみりあ", "answerLen": 9, "level": 4}, {"id": 56, "text": "1905年にアインシュタインが発表した、時間と空間の歪みを説明し、現代物理学の基礎となった「E=mc²」の式で有名な理論は何？", "answer": "そうたいせいりろん", "answerLen": 9, "level": 4}, {"id": 57, "text": "19世紀のロンドンを舞台に、名探偵シャーロック・ホームズが相棒のワトソンと共に難事件を解決するシリーズを書いたイギリスの作家は？", "answer": "こなんどいる", "answerLen": 6, "level": 4}, {"id": 58, "text": "いじめられていた亀を助けたお礼に、竜宮城へ連れて行かれ、最後に玉手箱を開けておじいさんになってしまう、日本の有名な昔話の主人公は誰？", "answer": "うらしまたろう", "answerLen": 7, "level": 4}, {"id": 59, "text": "24時間営業で、お弁当や飲み物の販売だけでなく、公共料金の支払いや宅配便の受け取りもできる、街中でよく見かける便利なお店の総称は何？", "answer": "こんびにえんすすとあ", "answerLen": 10, "level": 4}, {"id": 60, "text": "「腕を前から上にあげて、大きく背をそらす運動から」のように、ピアノの伴奏に合わせて体を動かす、日本の朝の風景としておなじみの体操は何？", "answer": "らじおたいそう", "answerLen": 7, "level": 4}, {"id": 61, "text": "今では陸上競技などでひとりの選手が一気にたくさんの相手を追い抜く際に用いられることもある、土から引っ張り抜く様子になぞらえた、野菜の名称が入った言葉は？", "answer": "ごぼうぬき", "answerLen": 5, "level": 4}, {"id": 62, "text": "「祇園精舎の鐘の声、諸行無常の響きあり。娑羅双樹の花の色、盛者必衰の理をあらわす。」という有名な一節で始まり、平家一門の栄華と没落を琵琶法師の語りによって伝えた、鎌倉時代に成立した軍記物語は何？", "answer": "へいけものがたり", "answerLen": 8, "level": 5}, {"id": 63, "text": "1972年のユネスコ総会で採択された条約に基づき、人類共通の財産として未来に引き継ぐべき価値があると認められた遺跡や自然環境のことで、日本では法隆寺や姫路城、知床、屋久島などが登録されているものを総称して何という？", "answer": "せかいいさん", "answerLen": 6, "level": 5}, {"id": 64, "text": "「誰もが自由に編集できるフリー百科事典」を掲げる多言語プロジェクトで、その名称はハワイ語で「速い」を意味する言葉と「エンサイクロペディア」を掛け合わせた造語であり、2001年にジミー・ウェールズらによって開始されたWebサイトは何？", "answer": "うぃきぺでぃあ", "answerLen": 7, "level": 5}];
+
+        // --- Keyboard Logic ---
+        const Keyboard = {
+            init: function() {
+                const container = document.getElementById('soft-keyboard');
+                container.innerHTML = '';
+                // Last row has 3 empty spacers at the end to replace 'OK'
+                const rows = [
+                    ['わ','ら','や','ま','は','な','た','さ','か','あ','１','２','３'],
+                    ['を','り','ゆ','み','ひ','に','ち','し','き','い','４','５','６'],
+                    ['ん','る','よ','む','ふ','ぬ','つ','す','く','う','７','８','９'],
+                    ['ー','れ','゛','め','へ','ね','て','せ','け','え','０','BS','CLR'],
+                    ['小','ろ','゜','も','ほ','の','と','そ','こ','お','','','']
+                ];
+                const numMap = {'０':'0','１':'1','２':'2','３':'3','４':'4','５':'5','６':'6','７':'7','８':'8','９':'9'};
+
+                rows.forEach(row => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'kb-row';
+                    row.forEach((char, index) => {
+                        const btn = document.createElement('div');
+                        btn.className = 'kb-key';
+                        
+                        // Spacer
+                        if(char === '') {
+                            btn.style.visibility = 'hidden';
+                        }
+
+                        if(char === 'BS' || char === 'CLR' || char === '゛' || char === '゜' || char === '小') {
+                            btn.classList.add('func');
+                        }
+                        if(!isNaN(char) || ['１','２','３','４','５','６','７','８','９','０'].includes(char)) {
+                            btn.classList.add('num');
+                        }
+
+                        if(char === 'BS') btn.innerText = '⌫';
+                        else if(char === 'CLR') btn.innerText = '×';
+                        else btn.innerText = char;
+
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            if(char === '') return;
+                            if(Game.state.phase !== 'answer') return;
+
+                            if(char === 'BS') this.backspace();
+                            else if(char === 'CLR') this.clear();
+                            else if(char === '゛') this.addDakuten();
+                            else if(char === '゜') this.addHandakuten();
+                            else if(char === '小') this.makeSmall();
+                            else {
+                                const val = numMap[char] || char;
+                                this.inputChar(val);
+                            }
+                        };
+                        rowEl.appendChild(btn);
+                    });
+                    container.appendChild(rowEl);
+                });
+            },
+            inputChar: function(char) {
+                const q = Game.state.questions[Game.state.currentQIndex];
+                if(Game.state.currentInput.length < q.answerLen) {
+                    Game.state.currentInput += char;
+                    Game.renderSlots();
+                }
+            },
+            backspace: function() {
+                Game.state.currentInput = Game.state.currentInput.slice(0, -1);
+                Game.renderSlots();
+            },
+            clear: function() {
+                Game.state.currentInput = '';
+                Game.renderSlots();
+            },
+            addDakuten: function() {
+                const str = Game.state.currentInput;
+                if(str.length === 0) return;
+                const last = str.slice(-1);
+                const map = {'か':'が','き':'ぎ','く':'ぐ','け':'げ','こ':'ご','さ':'ざ','し':'じ','す':'ず','せ':'ぜ','そ':'ぞ','た':'だ','ち':'ぢ','つ':'づ','て':'で','と':'ど','は':'ば','ひ':'び','ふ':'ぶ','へ':'べ','ほ':'ぼ','う':'ゔ'};
+                if(map[last]) {
+                    Game.state.currentInput = str.slice(0, -1) + map[last];
+                    Game.renderSlots();
+                }
+            },
+            addHandakuten: function() {
+                const str = Game.state.currentInput;
+                if(str.length === 0) return;
+                const last = str.slice(-1);
+                const map = {'は':'ぱ','ひ':'ぴ','ふ':'ぷ','へ':'ぺ','ほ':'ぽ'};
+                if(map[last]) {
+                    Game.state.currentInput = str.slice(0, -1) + map[last];
+                    Game.renderSlots();
+                }
+            },
+            makeSmall: function() {
+                const str = Game.state.currentInput;
+                if(str.length === 0) return;
+                const last = str.slice(-1);
+                const map = {'あ':'ぁ','い':'ぃ','う':'ぅ','え':'ぇ','お':'ぉ','つ':'っ','や':'ゃ','ゆ':'ゅ','よ':'ょ','わ':'ゎ'};
+                const revMap = Object.fromEntries(Object.entries(map).map(([k,v]) => [v,k]));
+                
+                let newItem = last;
+                if(map[last]) newItem = map[last];
+                else if(revMap[last]) newItem = revMap[last];
+                
+                Game.state.currentInput = str.slice(0, -1) + newItem;
+                Game.renderSlots();
+            }
+        };
+
+        // --- UI Manager ---
+        const UI = {
+            showManual: function() { document.getElementById('manual-modal').style.display = 'flex'; },
+            closeManual: function() { document.getElementById('manual-modal').style.display = 'none'; }
+        };
 
         // --- Game Logic ---
         const Game = {
             state: {
-                currentQIndex: 0,
-                remainingMP: 50,
-                totalScore: 0,
-                questions: [],
-                
-                // Current Question State
-                currentQ_betMP: 0,
-                currentQ_openedParts: 0,
-                currentQ_attempts: 0,
-                parts: [] // array of {text: string, opened: bool}
+                currentQIndex: 0, remainingMP: 50, totalScore: 0,
+                questions: [], currentQ_betMP: 0, currentQ_openedParts: 0, currentQ_attempts: 0, parts: [],
+                currentInput: "",
+                phase: "select",
+                selectedIndices: new Set(),
+                lastWrongAnswerOpenedCount: -1
             },
 
             init: function() {
-                // Initialize High Score
                 const hs = localStorage.getItem('pq_highscore');
                 document.getElementById('hs-display').innerText = hs ? hs : 0;
-
-                // Pick 5 random questions
-                const shuffled = [...questionsData].sort(() => 0.5 - Math.random());
-                this.state.questions = shuffled.slice(0, 5).map((q, i) => ({...q, level: i + 1}));
                 
-                // Reset State
+                const pools = {1:[], 2:[], 3:[], 4:[], 5:[]};
+                questionsData.forEach(q => { if(pools[q.level]) pools[q.level].push(q); });
+                
+                const selectedQs = [];
+                for(let i=1; i<=5; i++) {
+                    let pool = pools[i];
+                    if(pool.length === 0) pool = pools[1];
+                    const randomQ = pool[Math.floor(Math.random() * pool.length)];
+                    selectedQs.push({...randomQ, stageLevel: i});
+                }
+                
+                this.state.questions = selectedQs;
                 this.state.currentQIndex = 0;
                 this.state.remainingMP = 50;
                 this.state.totalScore = 0;
                 
-                // UI Switch
                 document.getElementById('start-screen').style.display = 'none';
                 document.getElementById('game-area').style.display = 'block';
                 document.getElementById('final-modal').style.display = 'none';
                 
+                Keyboard.init();
                 this.updateGlobalUI();
                 this.startLevel();
             },
@@ -614,34 +572,29 @@
                 }
 
                 const q = this.state.questions[this.state.currentQIndex];
-                
-                // Reset Current Q State
                 this.state.currentQ_attempts = 0;
                 this.state.currentQ_openedParts = 0;
-                document.getElementById('answer-input').value = '';
+                this.state.currentInput = "";
+                this.state.selectedIndices.clear();
+                this.state.lastWrongAnswerOpenedCount = -1;
                 
-                // UI Updates
-                document.getElementById('stage-display').innerText = `STAGE ${this.state.currentQIndex + 1} / 5 (Lv.${q.level})`;
-                document.getElementById('char-count-display').innerText = `Length: ${q.text.length} chars | Hint: ${q.answerLen} chars`;
+                document.getElementById('stage-display').innerText = `第 ${this.state.currentQIndex + 1} 階層 (Lv.${q.stageLevel})`;
+                document.getElementById('char-count-display').innerText = `解析文字数: ${q.text.length} 文字`;
                 
-                // Reset Bulbs
                 const bulbs = document.getElementById('attempts-container').children;
-                for(let b of bulbs) {
-                    b.classList.remove('broken');
-                    b.classList.add('lit');
-                }
+                for(let b of bulbs) { b.classList.remove('broken'); b.classList.add('lit'); }
 
-                // Show Bet Modal
-                this.showBetModal(q.text.length);
+                this.showBetModal(q);
             },
 
-            showBetModal: function(textLen) {
-                const maxBet = Math.min(this.state.remainingMP, textLen);
+            showBetModal: function(q) {
+                const maxBet = Math.min(this.state.remainingMP, q.text.length);
                 const slider = document.getElementById('bet-slider');
                 slider.max = maxBet;
-                slider.value = Math.ceil(maxBet / 2); // default to half
+                slider.value = Math.ceil(maxBet / 2);
+                document.getElementById('bet-level-display').innerText = q.stageLevel;
+                document.getElementById('bet-modal-q-len').innerText = q.text.length;
                 this.updateBetDisplay();
-                
                 document.getElementById('bet-modal').style.display = 'flex';
             },
 
@@ -654,10 +607,66 @@
                 const bet = parseInt(document.getElementById('bet-slider').value);
                 this.state.remainingMP -= bet;
                 this.state.currentQ_betMP = bet;
-                
                 document.getElementById('bet-modal').style.display = 'none';
                 this.updateGlobalUI();
                 this.splitQuestion(bet);
+                this.renderSlots();
+                
+                this.setPhase('select');
+            },
+
+            setPhase: function(phase) {
+                this.state.phase = phase;
+                const msg = document.getElementById('status-message');
+                const actions = document.getElementById('main-actions-container');
+                actions.innerHTML = '';
+
+                if (phase === 'select') {
+                    msg.innerText = "ターゲットを選択してください";
+                    msg.style.color = "var(--highlight)";
+                    
+                    const btn = document.createElement('button');
+                    btn.innerText = "決定 (OPEN)";
+                    btn.className = "primary";
+                    btn.onclick = () => this.confirmOpen();
+                    actions.appendChild(btn);
+
+                } else if (phase === 'answer') {
+                    msg.innerText = "解答を入力してください";
+                    msg.style.color = "var(--glow)";
+                    
+                    const btnSend = document.createElement('button');
+                    btnSend.innerText = "送信";
+                    btnSend.className = "primary";
+                    btnSend.onclick = () => this.submitAnswer();
+                    actions.appendChild(btnSend);
+
+                    const btnPass = document.createElement('button');
+                    btnPass.innerText = "追加調査 (PASS)";
+                    btnPass.className = "secondary";
+                    btnPass.onclick = () => this.pass();
+                    actions.appendChild(btnPass);
+                }
+            },
+
+            renderSlots: function() {
+                const q = this.state.questions[this.state.currentQIndex];
+                const container = document.getElementById('answer-slots');
+                container.innerHTML = '';
+                
+                for(let i=0; i<q.answerLen; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'slot';
+                    const char = this.state.currentInput[i];
+                    if(char) {
+                        slot.innerText = char;
+                        slot.classList.add('filled');
+                    }
+                    if(this.state.phase === 'answer' && i === this.state.currentInput.length) {
+                        slot.classList.add('current');
+                    }
+                    container.appendChild(slot);
+                }
             },
 
             splitQuestion: function(partsCount) {
@@ -665,18 +674,15 @@
                 const text = q.text;
                 const len = text.length;
 
-                // Random cut points
                 let cuts = new Set();
                 cuts.add(0);
                 cuts.add(len);
-                
                 while(cuts.size < partsCount + 1 && cuts.size <= len) {
                     let r = Math.floor(Math.random() * (len - 1)) + 1;
                     cuts.add(r);
                 }
                 
                 const sortedCuts = Array.from(cuts).sort((a,b) => a-b);
-                
                 this.state.parts = [];
                 for(let i=0; i<sortedCuts.length-1; i++) {
                     this.state.parts.push({
@@ -685,13 +691,11 @@
                         index: i
                     });
                 }
-
                 this.renderParts();
             },
 
             renderParts: function() {
                 const board = document.getElementById('question-board');
-                // Remove old parts but keep background gears
                 const gears = board.querySelectorAll('.bg-gear');
                 board.innerHTML = '';
                 gears.forEach(g => board.appendChild(g));
@@ -700,12 +704,15 @@
                     const el = document.createElement('div');
                     el.className = 'q-part';
                     if(part.opened) el.classList.add('opened');
+                    if(this.state.selectedIndices.has(idx)) el.classList.add('selected');
                     
-                    // Cover
+                    const w = Math.max(1.5, part.text.length * 1.5) + 'em';
+                    el.style.width = w;
+
                     const cover = document.createElement('div');
                     cover.className = 'plate-cover';
-                    
-                    // Text
+                    cover.innerText = `(${part.text.length})`;
+
                     const txt = document.createElement('div');
                     txt.className = 'plate-text';
                     txt.innerText = part.text;
@@ -713,57 +720,90 @@
                     el.appendChild(cover);
                     el.appendChild(txt);
                     
-                    el.onclick = () => this.openPart(idx);
-                    
+                    el.onclick = () => this.handlePartClick(idx);
                     board.appendChild(el);
                 });
             },
 
-            openPart: function(idx) {
+            handlePartClick: function(idx) {
+                if(this.state.phase !== 'select') return;
                 if(this.state.parts[idx].opened) return;
-                
-                this.state.parts[idx].opened = true;
-                this.state.currentQ_openedParts++;
-                
-                // Re-render specifically this part or just update class
+
                 const partsEl = document.querySelectorAll('.q-part');
-                partsEl[idx].classList.add('opened');
+
+                if(this.state.selectedIndices.has(idx)) {
+                    this.state.selectedIndices.delete(idx);
+                    partsEl[idx].classList.remove('selected');
+                } else {
+                    this.state.selectedIndices.add(idx);
+                    partsEl[idx].classList.add('selected');
+                }
+            },
+
+            confirmOpen: function() {
+                if(this.state.selectedIndices.size === 0) {
+                    this.showFeedback("ターゲット未選択", false, true);
+                    return;
+                }
+
+                this.state.selectedIndices.forEach(idx => {
+                    this.state.parts[idx].opened = true;
+                    this.state.currentQ_openedParts++;
+                });
+                
+                this.state.selectedIndices.clear();
+                this.renderParts();
+                this.setPhase('answer');
             },
 
             submitAnswer: function() {
-                const input = document.getElementById('answer-input');
-                const val = input.value.trim();
+                const val = this.state.currentInput;
                 const q = this.state.questions[this.state.currentQIndex];
+                
+                if(this.state.lastWrongAnswerOpenedCount !== -1 && 
+                   this.state.lastWrongAnswerOpenedCount === this.state.currentQ_openedParts) {
+                    this.showFeedback("情報不足:\nパネルを開けてください", false, true);
+                    return;
+                }
+
+                if(val.length !== q.answerLen) return;
 
                 if(val === q.answer) {
-                    this.showFeedback(true);
+                    this.showFeedback("", true);
                     this.calculateScore(true);
                 } else {
-                    this.showFeedback(false);
+                    this.showFeedback("", false);
                     this.handleWrongAnswer();
                 }
             },
 
             handleWrongAnswer: function() {
+                this.state.lastWrongAnswerOpenedCount = this.state.currentQ_openedParts;
+                
                 this.state.currentQ_attempts++;
                 const bulbs = document.getElementById('attempts-container').children;
                 if(this.state.currentQ_attempts <= 3) {
                     bulbs[3 - this.state.currentQ_attempts].classList.remove('lit');
                     bulbs[3 - this.state.currentQ_attempts].classList.add('broken');
                 }
+                
+                this.state.currentInput = "";
+                this.renderSlots();
 
                 if(this.state.currentQ_attempts >= 3) {
-                    // Fail
+                    setTimeout(() => { this.calculateScore(false); }, 1000);
+                } else {
                     setTimeout(() => {
-                        this.calculateScore(false);
+                        this.showFeedback("再調査開始", false, true);
+                        this.setPhase('select');
                     }, 1000);
                 }
             },
 
             pass: function() {
-                // Just clear input and focus back to board implied
-                document.getElementById('answer-input').value = '';
-                // In this game logic, pass doesn't do much other than staying in phase
+                this.state.currentInput = "";
+                this.renderSlots();
+                this.setPhase('select');
             },
 
             giveUp: function() {
@@ -776,41 +816,37 @@
                 let detailsHtml = '';
 
                 if(isClear) {
-                    // 1. Clear Bonus
-                    const base = q.level * 1000;
+                    const base = q.stageLevel * 200;
                     let multiplier = 1.0;
-                    if(this.state.currentQ_attempts === 1) multiplier = 0.5;
-                    if(this.state.currentQ_attempts === 2) multiplier = 0.1;
-                    
+                    if(this.state.currentQ_attempts === 0) multiplier = 1.0; 
+                    else if(this.state.currentQ_attempts === 1) multiplier = 0.5;
+                    else multiplier = 0.1;
+
                     const clearBonus = Math.floor(base * multiplier);
-                    
-                    // 2. Unopened Bonus
                     const totalParts = this.state.parts.length;
                     const unopened = totalParts - this.state.currentQ_openedParts;
-                    const partsBonus = unopened * 100;
+                    const partsBonus = unopened * 750;
 
                     roundScore = clearBonus + partsBonus;
-
                     detailsHtml = `
-                        <p>Answer: ${q.answer}</p>
-                        <div class="result-row"><span>Clear Bonus (Lv.${q.level}):</span> <span>${clearBonus}</span></div>
-                        <div class="result-row"><span>Unopened Parts (${unopened}):</span> <span>${partsBonus}</span></div>
-                        <div class="result-row" style="color:var(--glow)"><span>TOTAL:</span> <span>${roundScore}</span></div>
+                        <p>正解: ${q.answer}</p>
+                        <div class="result-row"><span>Lv.${q.stageLevel} クリア報酬:</span> <span>${clearBonus}</span></div>
+                        <div class="result-row"><span>未開封ボーナス (${unopened}枚):</span> <span>${partsBonus}</span></div>
+                        <div class="result-row" style="color:var(--glow)"><span>合計:</span> <span>${roundScore}</span></div>
                     `;
-                    document.getElementById('result-title').innerText = "STAGE CLEARED";
+                    document.getElementById('result-title').innerText = "ステージクリア";
                 } else {
                     detailsHtml = `
-                        <p style="color:red">FAILED / GIVEN UP</p>
-                        <p>Answer was: ${q.answer}</p>
-                        <div class="result-row"><span>Score:</span> <span>0</span></div>
+                        <p style="color:red">解析失敗 / 撤退</p>
+                        <p>正解は: ${q.answer}</p>
+                        <div class="result-row"><span>スコア:</span> <span>0</span></div>
                     `;
-                    document.getElementById('result-title').innerText = "SYSTEM FAILURE";
+                    document.getElementById('result-title').innerText = "解析不能";
                 }
 
                 this.state.totalScore += roundScore;
                 this.updateGlobalUI();
 
-                // Show Result Modal
                 document.getElementById('result-details').innerHTML = detailsHtml;
                 document.getElementById('result-modal').style.display = 'flex';
             },
@@ -822,25 +858,21 @@
             },
 
             finishGame: function() {
-                // Final Resource Bonus
-                const mpBonus = this.state.remainingMP * 2000;
+                const mpBonus = this.state.remainingMP * 500;
                 this.state.totalScore += mpBonus;
-                
-                // Rank
                 let rank = 'F';
-                if(this.state.totalScore > 5000) rank = 'C';
-                if(this.state.totalScore > 10000) rank = 'B';
-                if(this.state.totalScore > 20000) rank = 'A';
-                if(this.state.totalScore > 30000) rank = 'S';
+                if(this.state.totalScore > 10000) rank = 'C';
+                if(this.state.totalScore > 20000) rank = 'B';
+                if(this.state.totalScore > 30000) rank = 'A';
+                if(this.state.totalScore > 40000) rank = 'S';
 
-                // Save Highscore
                 const currentHs = localStorage.getItem('pq_highscore') || 0;
                 if(this.state.totalScore > currentHs) {
                     localStorage.setItem('pq_highscore', this.state.totalScore);
                 }
 
                 document.getElementById('final-score').innerText = this.state.totalScore;
-                document.getElementById('rank-display').innerText = `RANK: ${rank} (MP Bonus: +${mpBonus})`;
+                document.getElementById('rank-display').innerText = `ランク: ${rank} (残MPボーナス: +${mpBonus})`;
                 document.getElementById('game-area').style.display = 'none';
                 document.getElementById('final-modal').style.display = 'flex';
             },
@@ -848,18 +880,20 @@
             updateGlobalUI: function() {
                 document.getElementById('mp-display').innerText = this.state.remainingMP;
                 document.getElementById('score-display').innerText = this.state.totalScore;
-                
                 const mpPercent = (this.state.remainingMP / 50) * 100;
                 document.getElementById('mp-bar').style.width = `${mpPercent}%`;
             },
 
-            showFeedback: function(isCorrect) {
+            showFeedback: function(msg, isCorrect, isWarn=false) {
                 const fb = document.getElementById('feedback-msg');
-                fb.innerText = isCorrect ? "CORRECT ANSWER" : "ERROR: INVALID INPUT";
-                fb.className = isCorrect ? "correct show" : "wrong show";
-                setTimeout(() => {
-                    fb.className = "";
-                }, 1500);
+                if(isWarn) {
+                    fb.innerText = msg;
+                    fb.className = "warn show";
+                } else {
+                    fb.innerText = isCorrect ? "正解!!" : "入力エラー";
+                    fb.className = isCorrect ? "correct show" : "wrong show";
+                }
+                setTimeout(() => { fb.className = ""; }, 1500);
             }
         };
     </script>
