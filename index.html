@@ -357,14 +357,13 @@
                     <b>スコアアタック (Normal)</b><br>
                     全5問の合計スコアを競う。<br>
                     MP: 50固定 (消費型)<br>
-                    ジャンルOpen: スコア減額<br>
-                    パス: 無制限
+                    パス: <b>解答権(ライフ)を1つ消費</b>して再調査<br>
+                    失敗: 3回ミスで0点
                 </p>
                 <p style="border-left:3px solid var(--cyan); padding-left:10px;">
                     <b>Infinite Decode (Endless)</b><br>
                     MPが尽きるまでの連続正解数を競う。<br>
                     MP: 初期20。正解で回復。<br>
-                    ジャンルOpen: <b>-5 MP</b><br>
                     不正解 / パス: <b>-3 MP</b><br>
                     スキップ: <b>-10 MP</b><br>
                 </p>
@@ -448,13 +447,13 @@
             <h2 id="result-title">ステージクリア</h2>
             <div id="result-details"></div>
             <br>
-            <button onclick="Game.nextLevel()">次へ進む</button>
+            <button onclick="Game.nextLevel()">次の階層へ</button>
         </div>
     </div>
 
     <div id="final-modal" class="modal-overlay">
         <div class="modal">
-            <h2>ミッション終了</h2>
+            <h2>全階層踏破</h2>
             <div class="total-score" id="final-score">0</div>
             <p id="rank-display" style="font-size:1.2em; font-weight:bold; color:var(--highlight)">ランク: F</p>
             <button onclick="location.reload()">システム再起動</button>
@@ -961,7 +960,17 @@
                     this.renderSlots();
                     this.setPhase('select');
                 } else {
-                    // Normal Pass (Return to select)
+                    // Normal Pass (Consumes Life)
+                    this.state.currentQ_attempts++;
+                    const bulbs = document.getElementById('attempts-container').children;
+                    if(this.state.currentQ_attempts <= 3) {
+                        bulbs[3 - this.state.currentQ_attempts].classList.remove('lit');
+                        bulbs[3 - this.state.currentQ_attempts].classList.add('broken');
+                    }
+                    if(this.state.currentQ_attempts >= 3) {
+                        setTimeout(() => { this.calculateScore(false); }, 1000);
+                        return;
+                    }
                     this.state.currentInput = "";
                     this.renderSlots();
                     this.setPhase('select');
